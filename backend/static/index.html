@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RoadSentinel AI - Municipal Intelligence & Repair Verification</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        #map { height: 420px; border-radius: 0.75rem; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+    <!-- Header Navigation -->
+    <header class="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
+                    <i data-lucide="shield-alert" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-amber-400 via-amber-200 to-indigo-400 bg-clip-text text-transparent">
+                        RoadSentinel AI
+                    </span>
+                    <span class="hidden md:inline-block ml-2 px-2 py-0.5 text-xs font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-full">
+                        Enterprise v1.0
+                    </span>
+                </div>
+            </div>
+
+            <nav class="flex items-center space-x-1 sm:space-x-2">
+                <button onclick="switchTab('map-view')" class="tab-btn px-3 py-1.5 rounded-lg text-sm font-medium transition text-amber-400 bg-slate-800" data-tab="map-view">
+                    GIS Heatmap
+                </button>
+                <button onclick="switchTab('detect-view')" class="tab-btn px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200" data-tab="detect-view">
+                    Vision Studio
+                </button>
+                <button onclick="switchTab('contractor-view')" class="tab-btn px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200" data-tab="contractor-view">
+                    Contractor Portal
+                </button>
+                <button onclick="switchTab('verify-view')" class="tab-btn px-3 py-1.5 rounded-lg text-sm font-medium transition text-slate-400 hover:text-slate-200" data-tab="verify-view">
+                    AI Verification
+                </button>
+                <a href="/docs" target="_blank" class="px-3 py-1.5 text-xs font-mono bg-slate-800 text-slate-300 hover:bg-slate-700 rounded-lg flex items-center space-x-1 border border-slate-700">
+                    <span>API Docs</span>
+                    <i data-lucide="external-link" class="w-3 h-3"></i>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Executive Metrics Row -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Road Health Index (RHI)</span>
+                    <i data-lucide="activity" class="w-5 h-5 text-emerald-400"></i>
+                </div>
+                <div class="mt-3 flex items-baseline space-x-2">
+                    <span id="stat-rhi" class="text-3xl font-extrabold text-emerald-400">82.5</span>
+                    <span class="text-xs text-slate-500">/ 100 PCI</span>
+                </div>
+                <div class="mt-2 text-xs font-medium text-emerald-400/90" id="stat-grade">Status: Good (Routine Maintenance)</div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Active Road Distress</span>
+                    <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i>
+                </div>
+                <div class="mt-3 flex items-baseline space-x-2">
+                    <span id="stat-active" class="text-3xl font-extrabold text-amber-400">2</span>
+                    <span class="text-xs text-slate-500">Defects Assigned</span>
+                </div>
+                <div class="mt-2 text-xs text-slate-400">Avg. SLA Turnaround: 26.4 hrs</div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">AI Verified Repairs</span>
+                    <i data-lucide="check-circle-2" class="w-5 h-5 text-indigo-400"></i>
+                </div>
+                <div class="mt-3 flex items-baseline space-x-2">
+                    <span id="stat-verified" class="text-3xl font-extrabold text-indigo-400">42</span>
+                    <span class="text-xs text-slate-500">Repairs Sealed</span>
+                </div>
+                <div class="mt-2 text-xs text-slate-400">First-Time Pass Rate: 91.8%</div>
+            </div>
+
+            <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Anti-Fraud Protection</span>
+                    <i data-lucide="shield-check" class="w-5 h-5 text-sky-400"></i>
+                </div>
+                <div class="mt-3 flex items-baseline space-x-2">
+                    <span class="text-3xl font-extrabold text-sky-400">100%</span>
+                    <span class="text-xs text-slate-500">pHash + Geofenced</span>
+                </div>
+                <div class="mt-2 text-xs text-slate-400">50m Max Coordinate Deviation</div>
+            </div>
+        </section>
+
+        <!-- VIEW 1: GIS HEATMAP & INCIDENTS -->
+        <section id="view-map" class="space-y-6">
+            <div class="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i data-lucide="map-pin" class="w-5 h-5 text-amber-400"></i>
+                            <span>City Infrastructure Spatial Intelligence Map</span>
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Real-time geospatial visualization of active road distress and contractor assignments.</p>
+                    </div>
+                    <button onclick="loadIncidents()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-lg border border-slate-700 flex items-center space-x-1.5 transition">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Refresh Pins</span>
+                    </button>
+                </div>
+                <div id="map"></div>
+            </div>
+
+            <!-- Incident Tickets Table -->
+            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+                <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+                    <h3 class="font-bold text-sm text-slate-200 uppercase tracking-wider flex items-center space-x-2">
+                        <i data-lucide="list" class="w-4 h-4 text-amber-400"></i>
+                        <span>Active Maintenance Incident Queue</span>
+                    </h3>
+                    <span class="text-xs font-mono text-slate-500" id="incident-count">Loading incidents...</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-slate-300">
+                        <thead class="bg-slate-950/60 text-xs font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
+                            <tr>
+                                <th class="px-5 py-3">Incident ID</th>
+                                <th class="px-5 py-3">Defect & Severity</th>
+                                <th class="px-5 py-3">Location & Road</th>
+                                <th class="px-5 py-3">Assigned Contractor</th>
+                                <th class="px-5 py-3">SLA Status</th>
+                                <th class="px-5 py-3">Volumetric Est.</th>
+                                <th class="px-5 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="incidents-table-body" class="divide-y divide-slate-800/60">
+                            <!-- Populated via JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 2: COMPUTER VISION STUDIO -->
+        <section id="view-detect" class="hidden space-y-6">
+            <div class="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <i data-lucide="video" class="w-5 h-5 text-indigo-400"></i>
+                    <span>Dashcam Video Ingestion & Object Tracking Pipeline</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">
+                    Upload road inspection video footage. Frames are extracted, processed through YOLOv8, deduplicated using ByteTrack Kalman tracking, and quantified for asphalt repair volume.
+                </p>
+
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="border-2 border-dashed border-slate-700/80 hover:border-indigo-500/50 rounded-xl p-8 flex flex-col items-center justify-center text-center transition bg-slate-950/40">
+                        <i data-lucide="upload-cloud" class="w-12 h-12 text-indigo-400 mb-3"></i>
+                        <span class="text-sm font-semibold text-slate-200">Select Road Video (MP4 / AVI)</span>
+                        <p class="text-xs text-slate-500 mt-1">Max 50MB for online demonstration</p>
+                        <input type="file" id="video-file-input" accept="video/*" class="mt-4 text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer" />
+                        <div class="mt-4 flex space-x-2">
+                            <button onclick="processUploadedVideo()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold shadow-lg shadow-indigo-600/20 transition flex items-center space-x-1.5">
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                <span>Run AI Detection</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-slate-800 p-5 rounded-xl space-y-3">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Simulate Video Telemetry</h4>
+                        <div class="space-y-2">
+                            <label class="text-xs text-slate-400">Reporting Road Corridor</label>
+                            <input type="text" id="sim-road" value="State Highway 17 North" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200" />
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs text-slate-400">Latitude</label>
+                                <input type="number" step="0.0001" id="sim-lat" value="18.5204" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200" />
+                            </div>
+                            <div>
+                                <label class="text-xs text-slate-400">Longitude</label>
+                                <input type="number" step="0.0001" id="sim-lng" value="73.8567" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200" />
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-500">PostGIS matches these coordinates to registered contractor maintenance contracts automatically.</p>
+                    </div>
+                </div>
+
+                <div id="video-results" class="mt-8 hidden">
+                    <h3 class="text-sm font-bold text-slate-200 mb-4">Extracted & Deduplicated Road Distress Incidents</h3>
+                    <div id="video-defects-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- Defect cards -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- VIEW 3: CONTRACTOR SUBMISSION PORTAL -->
+        <section id="view-contractor" class="hidden space-y-6">
+            <div class="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl max-w-2xl mx-auto">
+                <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                    <i data-lucide="hard-hat" class="w-5 h-5 text-amber-400"></i>
+                    <span>Contractor Repair Submission Portal</span>
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">Submit completed repair evidence photograph with GPS telemetry for automated AI verification.</p>
+
+                <form id="repair-form" onsubmit="handleRepairSubmission(event)" class="mt-6 space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Target Incident ID</label>
+                        <select id="submit-incident-id" required class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Contractor Organization</label>
+                        <select id="submit-contractor-id" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200">
+                            <option value="CTR-001">CTR-001: Apex Paving Solutions</option>
+                            <option value="CTR-002">CTR-002: MetroRoad Maintenance Corp</option>
+                            <option value="CTR-003">CTR-003: Civic Asphalt Engineering</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Upload Completed Repair Photo ("After" Evidence)</label>
+                        <input type="file" id="repair-photo" accept="image/*" required class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer" />
+                        <span class="text-xs text-slate-500 block mt-1">Supports EXIF GPS coordinates for anti-fraud boundary checking.</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Submission Latitude</label>
+                            <input type="number" step="0.0001" id="submit-lat" value="18.5204" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Submission Longitude</label>
+                            <input type="number" step="0.0001" id="submit-lng" value="73.8567" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-200" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">Maintenance Engineering Notes</label>
+                        <textarea id="submit-notes" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">Tack-coat emulsion applied, cold-milled, hot-mix asphalt aggregate compacted.</textarea>
+                    </div>
+
+                    <button type="submit" id="submit-btn" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white font-semibold rounded-lg text-xs transition shadow-lg shadow-amber-600/20 flex items-center justify-center space-x-1.5">
+                        <i data-lucide="check-check" class="w-4 h-4"></i>
+                        <span>Submit for Closed-Loop AI Verification</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <!-- VIEW 4: AI VERIFICATION INSPECTOR -->
+        <section id="view-verify" class="hidden space-y-6">
+            <div class="bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center space-x-2">
+                            <i data-lucide="scan-line" class="w-5 h-5 text-indigo-400"></i>
+                            <span>AI Repair Verification Inspector & Explainability Dashboard</span>
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Automated comparison evaluating homography alignment, residual defects, and anti-fraud telemetry.</p>
+                    </div>
+                </div>
+
+                <div id="verify-placeholder" class="text-center py-16 text-slate-500">
+                    <i data-lucide="file-search" class="w-12 h-12 mx-auto mb-3 opacity-50"></i>
+                    <p class="text-sm font-medium">No verification job submitted yet.</p>
+                    <p class="text-xs mt-1">Submit a repair photo in the Contractor Portal or click an incident to inspect.</p>
+                </div>
+
+                <div id="verify-details" class="hidden space-y-6">
+                    <!-- Outcome Banner -->
+                    <div id="outcome-banner" class="p-4 rounded-xl border flex items-center justify-between">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <!-- Side-by-side Evidence & Homography Diff -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Original Defect Evidence ("Before")</span>
+                            <div class="h-64 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
+                                <img id="verify-img-before" src="" class="max-h-full max-w-full object-contain" />
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2">Submitted Contractor Repair ("After")</span>
+                            <div class="h-64 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
+                                <img id="verify-img-after" src="" class="max-h-full max-w-full object-contain" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Verification Metrics Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 block">Homography Alignment</span>
+                            <span id="metric-homography" class="text-lg font-bold text-slate-100 mt-1 block">--</span>
+                            <span id="metric-matches" class="text-xs text-slate-500">0 ORB Matches</span>
+                        </div>
+                        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 block">Anti-Fraud Geofence</span>
+                            <span id="metric-geofence" class="text-lg font-bold text-slate-100 mt-1 block">--</span>
+                            <span id="metric-distance" class="text-xs text-slate-500">0.0m deviation</span>
+                        </div>
+                        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 block">Residual Defect Check</span>
+                            <span id="metric-residual" class="text-lg font-bold text-slate-100 mt-1 block">--</span>
+                            <span class="text-xs text-slate-500">YOLO Secondary Pass</span>
+                        </div>
+                        <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800">
+                            <span class="text-xs text-slate-400 block">Fresh Patch Texture</span>
+                            <span id="metric-patch" class="text-lg font-bold text-slate-100 mt-1 block">--</span>
+                            <span class="text-xs text-slate-500">Bitumen Compaction</span>
+                        </div>
+                    </div>
+
+                    <!-- Explainability Explanation -->
+                    <div class="bg-indigo-950/20 border border-indigo-900/40 p-4 rounded-xl text-xs text-indigo-300 flex items-start space-x-2">
+                        <i data-lucide="info" class="w-4 h-4 text-indigo-400 shrink-0 mt-0.5"></i>
+                        <span id="verify-explanation">Verification explanation details...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Client-side Logic Script -->
+    <script>
+        lucide.createIcons();
+
+        // Leaflet Map Initialization
+        const map = L.map('map').setView([18.5204, 73.8567], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            maxZoom: 19
+        }).addTo(map);
+
+        let mapMarkers = [];
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === tabId) {
+                    btn.classList.add('text-amber-400', 'bg-slate-800');
+                    btn.classList.remove('text-slate-400');
+                } else {
+                    btn.classList.remove('text-amber-400', 'bg-slate-800');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            document.getElementById('view-map').classList.add('hidden');
+            document.getElementById('view-detect').classList.add('hidden');
+            document.getElementById('view-contractor').classList.add('hidden');
+            document.getElementById('view-verify').classList.add('hidden');
+
+            if (tabId === 'map-view') {
+                document.getElementById('view-map').classList.remove('hidden');
+                setTimeout(() => map.invalidateSize(), 150);
+            } else if (tabId === 'detect-view') {
+                document.getElementById('view-detect').classList.remove('hidden');
+            } else if (tabId === 'contractor-view') {
+                document.getElementById('view-contractor').classList.remove('hidden');
+            } else if (tabId === 'verify-view') {
+                document.getElementById('view-verify').classList.remove('hidden');
+            }
+            lucide.createIcons();
+        }
+
+        async function loadIncidents() {
+            try {
+                const res = await fetch('/api/v1/incidents');
+                const incidents = await res.json();
+
+                // Clear existing markers
+                mapMarkers.forEach(m => map.removeLayer(m));
+                mapMarkers = [];
+
+                const tableBody = document.getElementById('incidents-table-body');
+                const selectIncident = document.getElementById('submit-incident-id');
+                tableBody.innerHTML = '';
+                selectIncident.innerHTML = '';
+
+                document.getElementById('incident-count').innerText = `${incidents.length} Records Tracked`;
+
+                incidents.forEach(inc => {
+                    // Add Map Marker
+                    const color = inc.severity === 'HIGH' ? '#EF4444' : (inc.severity === 'MEDIUM' ? '#F59E0B' : '#10B981');
+                    const marker = L.circleMarker([inc.coordinates.latitude, inc.coordinates.longitude], {
+                        radius: 8,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.85
+                    }).addTo(map);
+
+                    marker.bindPopup(`
+                        <div class="p-2 text-xs font-sans">
+                            <strong class="text-sm font-bold">${inc.id}</strong><br/>
+                            <span class="text-slate-600 font-semibold">${inc.coordinates.road_name}</span><br/>
+                            <span class="inline-block px-1.5 py-0.5 rounded text-white bg-slate-800 my-1">${inc.severity} Severity</span><br/>
+                            Contractor: ${inc.assigned_contractor ? inc.assigned_contractor.name : 'Unassigned'}<br/>
+                            Est. Asphalt: ${inc.estimated_asphalt_kg} kg
+                        </div>
+                    `);
+                    mapMarkers.push(marker);
+
+                    // Add Table Row
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-900/60 transition";
+                    row.innerHTML = `
+                        <td class="px-5 py-3 font-mono font-semibold text-slate-100">${inc.id}</td>
+                        <td class="px-5 py-3">
+                            <span class="font-medium text-slate-200 capitalize">${inc.defect_type.replace('_', ' ')}</span>
+                            <span class="ml-2 text-xs px-2 py-0.5 rounded-full font-semibold ${
+                                inc.severity === 'HIGH' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
+                                (inc.severity === 'MEDIUM' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20')
+                            }">${inc.severity}</span>
+                        </td>
+                        <td class="px-5 py-3 text-xs text-slate-400">
+                            <div>${inc.coordinates.road_name}</div>
+                            <div class="font-mono text-slate-500">${inc.coordinates.latitude.toFixed(4)}, ${inc.coordinates.longitude.toFixed(4)}</div>
+                        </td>
+                        <td class="px-5 py-3 text-xs text-slate-300">
+                            ${inc.assigned_contractor ? inc.assigned_contractor.name : '<span class="text-slate-500">None</span>'}
+                        </td>
+                        <td class="px-5 py-3 text-xs">
+                            <span class="px-2 py-1 rounded text-xs font-semibold ${
+                                inc.status === 'VERIFIED' ? 'bg-emerald-500/20 text-emerald-400' :
+                                (inc.status === 'REWORK_REQUIRED' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400')
+                            }">${inc.status}</span>
+                        </td>
+                        <td class="px-5 py-3 text-xs font-mono text-slate-300">${inc.estimated_asphalt_kg} kg</td>
+                        <td class="px-5 py-3 text-right">
+                            <button onclick="inspectIncident('${inc.id}')" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 rounded border border-slate-700">
+                                Inspect
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+
+                    // Add to Contractor select
+                    const opt = document.createElement('option');
+                    opt.value = inc.id;
+                    opt.innerText = `${inc.id} - ${inc.coordinates.road_name} (${inc.severity})`;
+                    selectIncident.appendChild(opt);
+                });
+
+                // Load RHI
+                loadRHI();
+            } catch (err) {
+                console.error("Error loading incidents:", err);
+            }
+        }
+
+        async function loadRHI() {
+            try {
+                const res = await fetch('/api/v1/public/rhi');
+                const data = await res.json();
+                document.getElementById('stat-rhi').innerText = data.score;
+                document.getElementById('stat-active').innerText = data.active_defects_count;
+                document.getElementById('stat-verified').innerText = data.resolved_defects_count;
+                document.getElementById('stat-grade').innerText = `Status: ${data.grade}`;
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function processUploadedVideo() {
+            const fileInput = document.getElementById('video-file-input');
+            if (!fileInput.files.length) {
+                alert("Please select a video file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('latitude', document.getElementById('sim-lat').value);
+            formData.append('longitude', document.getElementById('sim-lng').value);
+            formData.append('road_name', document.getElementById('sim-road').value);
+
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span>Processing Video...</span>';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch('/api/v1/detect/video', {
+                    method: 'POST',
+                    body: formData
+                });
+                const defects = await res.json();
+
+                const resultsDiv = document.getElementById('video-results');
+                const grid = document.getElementById('video-defects-grid');
+                grid.innerHTML = '';
+                resultsDiv.classList.remove('hidden');
+
+                defects.forEach(d => {
+                    const card = document.createElement('div');
+                    card.className = "bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2";
+                    card.innerHTML = `
+                        <div class="h-36 bg-slate-900 rounded-lg overflow-hidden flex items-center justify-center">
+                            <img src="${d.evidence_image_url}" class="max-h-full max-w-full object-contain" />
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-sm text-slate-200 capitalize">${d.defect_type}</span>
+                            <span class="text-xs px-2 py-0.5 rounded font-semibold bg-red-500/20 text-red-400">${d.severity}</span>
+                        </div>
+                        <div class="text-xs text-slate-400 space-y-1">
+                            <div>Volume: <span class="font-mono text-slate-200">${d.estimated_volume_m3} m³</span></div>
+                            <div>Asphalt Req: <span class="font-mono text-slate-200">${d.estimated_asphalt_kg} kg</span></div>
+                            <div>Assigned: <span class="text-indigo-400">${d.assigned_contractor ? d.assigned_contractor.name : 'Matched'}</span></div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+
+                loadIncidents();
+                alert(`Analysis complete! Identified ${defects.length} qualifying road distress defects.`);
+            } catch (err) {
+                alert("Error processing video: " + err);
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function handleRepairSubmission(e) {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.innerHTML = "<span>Running AI Verification Engine...</span>";
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('incident_id', document.getElementById('submit-incident-id').value);
+            formData.append('contractor_id', document.getElementById('submit-contractor-id').value);
+            formData.append('notes', document.getElementById('submit-notes').value);
+            formData.append('latitude', document.getElementById('submit-lat').value);
+            formData.append('longitude', document.getElementById('submit-lng').value);
+            formData.append('file', document.getElementById('repair-photo').files[0]);
+
+            try {
+                const res = await fetch('/api/v1/contractors/submit-repair', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                renderVerificationReport(data.verification_report);
+                switchTab('verify-view');
+                loadIncidents();
+            } catch (err) {
+                alert("Submission failed: " + err);
+            } finally {
+                btn.innerHTML = `<i data-lucide="check-check" class="w-4 h-4"></i><span>Submit for Closed-Loop AI Verification</span>`;
+                btn.disabled = false;
+                lucide.createIcons();
+            }
+        }
+
+        function renderVerificationReport(report) {
+            document.getElementById('verify-placeholder').classList.add('hidden');
+            document.getElementById('verify-details').classList.remove('hidden');
+
+            const banner = document.getElementById('outcome-banner');
+            if (report.outcome === 'REPAIR_SUCCESSFUL') {
+                banner.className = "p-4 rounded-xl border bg-emerald-950/40 border-emerald-500/30 text-emerald-300 flex items-center justify-between";
+                banner.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="check-circle" class="w-6 h-6 text-emerald-400"></i>
+                        <div>
+                            <div class="font-bold text-sm">REPAIR VERIFIED SUCCESSFUL</div>
+                            <div class="text-xs text-emerald-400/80">Compliance confirmed. Ticket closed and contractor credit awarded.</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono font-bold bg-emerald-500/20 px-2.5 py-1 rounded">Confidence: ${(report.confidence_score*100).toFixed(0)}%</span>
+                `;
+            } else if (report.outcome === 'REPAIR_INCOMPLETE') {
+                banner.className = "p-4 rounded-xl border bg-red-950/40 border-red-500/30 text-red-300 flex items-center justify-between";
+                banner.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="alert-octagon" class="w-6 h-6 text-red-400"></i>
+                        <div>
+                            <div class="font-bold text-sm">REWORK REQUIRED - REPAIR REJECTED</div>
+                            <div class="text-xs text-red-400/80">Residual defect or duplicate image detected. Contractor penalty triggered.</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono font-bold bg-red-500/20 px-2.5 py-1 rounded">Score: ${(report.confidence_score*100).toFixed(0)}%</span>
+                `;
+            } else {
+                banner.className = "p-4 rounded-xl border bg-amber-950/40 border-amber-500/30 text-amber-300 flex items-center justify-between";
+                banner.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="help-circle" class="w-6 h-6 text-amber-400"></i>
+                        <div>
+                            <div class="font-bold text-sm">VERIFICATION UNCERTAIN (HITL ROUTED)</div>
+                            <div class="text-xs text-amber-400/80">Perspective alignment or geofence deviation requires municipal engineer review.</div>
+                        </div>
+                    </div>
+                    <span class="text-xs font-mono font-bold bg-amber-500/20 px-2.5 py-1 rounded">Review Pending</span>
+                `;
+            }
+
+            document.getElementById('verify-img-before').src = report.before_image_url;
+            document.getElementById('verify-img-after').src = report.after_image_url;
+
+            document.getElementById('metric-homography').innerText = report.homography_aligned ? "Aligned" : "Low Alignment";
+            document.getElementById('metric-matches').innerText = `${report.feature_matches_count} Keypoints`;
+
+            document.getElementById('metric-geofence').innerText = report.geofence_verified ? "Valid (<50m)" : "Violation";
+            document.getElementById('metric-distance').innerText = `${report.geofence_distance_m}m deviation`;
+
+            document.getElementById('metric-residual').innerText = report.residual_defect_found ? "Defect Found" : "Zero Residual";
+            document.getElementById('metric-patch').innerText = `${(report.patch_texture_score*100).toFixed(0)}%`;
+
+            document.getElementById('verify-explanation').innerText = report.explanation;
+
+            lucide.createIcons();
+        }
+
+        // Initial Load
+        loadIncidents();
+    </script>
+</body>
+</html>
