@@ -29,3 +29,12 @@ Desktop.ini
 *.onnx
 data/raw/
 
+# Storage uploads and dynamic artifacts
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+backend/storage/evidence/*
+!backend/storage/evidence/.gitkeep
+backend/storage/repairs/*
+!backend/storage/repairs/.gitkeep
+
+
