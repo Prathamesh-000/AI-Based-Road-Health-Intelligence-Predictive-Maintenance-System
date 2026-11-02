@@ -1,7 +1,7 @@
 import uuid
 from typing import List, Optional
 from datetime import datetime, timezone
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks, status
 
 from app.models.schemas import (
     Incident,
@@ -13,19 +13,26 @@ from app.models.schemas import (
     UpdateIncidentStatusRequest,
     GeoLocation,
     PhysicalMetrics,
-    AuditLogEntry
+    AuditLogEntry,
+    NotificationEvent
 )
 from app.core.database import db
 from app.services.spatial import GeospatialMatcher
 from app.services.sla import SLAEngine
+from app.services.notification import notification_dispatcher
 
 router = APIRouter(prefix="/incidents", tags=["Phase 2: Incident Lifecycle & Spatial Management"])
 spatial_matcher = GeospatialMatcher()
 
 
-def create_incident_from_detection_service(request: CreateIncidentFromDetectionRequest) -> Incident:
+def create_incident_from_detection_service(
+    request: CreateIncidentFromDetectionRequest,
+    dispatch_alert: bool = True
+) -> Incident:
     """
     Core business logic promoting a Phase 1 detection into an officially registered incident.
+    Automatically executes spatial boundary matching, contractor assignment, SLA deadline calculation,
+    and dispatches automated contractor notifications.
     """
     now = datetime.now(timezone.utc)
     incident_id = f"INC-2026-{uuid.uuid4().hex[:4].upper()}"
@@ -82,7 +89,25 @@ def create_incident_from_detection_service(request: CreateIncidentFromDetectionR
         ]
     )
 
-    return db.create_incident(incident)
+    created_incident = db.create_incident(incident)
+
+    # 4. Phase 3: Automated Contractor Notification Dispatch
+    if dispatch_alert:
+        try:
+            notification_dispatcher.dispatch_incident_notification(
+                incident=created_incident,
+                event=NotificationEvent.INCIDENT_ASSIGNED
+            )
+        except Exception as e:
+            created_incident.audit_trail.append(AuditLogEntry(
+                timestamp=datetime.now(timezone.utc),
+                previous_status=created_incident.status,
+                new_status=created_incident.status,
+                actor="Notification Dispatch Engine",
+                notes=f"Dispatch encountered error: {str(e)}"
+            ))
+
+    return created_incident
 
 
 def update_incident_status_service(incident_id: str, request: UpdateIncidentStatusRequest) -> Incident:
@@ -143,12 +168,16 @@ async def get_incident(incident_id: str):
 
 
 @router.post("/create-from-detection", response_model=Incident, status_code=status.HTTP_201_CREATED)
-async def create_incident_from_detection(request: CreateIncidentFromDetectionRequest):
+async def create_incident_from_detection(
+    request: CreateIncidentFromDetectionRequest,
+    background_tasks: BackgroundTasks
+):
     """
     Promotes a raw Phase 1 detection into an officially registered municipal incident ticket.
     Automatically executes spatial boundary matching, contractor assignment, and SLA deadline calculation.
+    Triggers automated notification dispatch.
     """
-    return create_incident_from_detection_service(request)
+    return create_incident_from_detection_service(request, dispatch_alert=True)
 
 
 @router.patch("/{incident_id}/status", response_model=Incident)
@@ -163,4 +192,3 @@ async def update_incident_status(incident_id: str, request: UpdateIncidentStatus
         raise HTTPException(status_code=404, detail=str(e))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-

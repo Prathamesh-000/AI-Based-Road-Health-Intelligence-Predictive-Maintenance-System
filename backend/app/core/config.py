@@ -14,7 +14,7 @@ for path in [STORAGE_DIR, UPLOAD_DIR, EVIDENCE_DIR, REPAIRS_DIR]:
 
 # System & API Metadata
 PROJECT_NAME = "RoadSentinel AI"
-PHASE = "Phase 1 - Perception, Telemetry & Volumetric Engine"
+PHASE = "Phase 3 - Automated Contractor Notification & Dispatch Engine"
 VERSION = "1.0.0"
 API_PREFIX = "/api/v1"
 
@@ -35,3 +35,13 @@ DEFAULT_DEPTH_HIGH_M = 0.08           # Severe pothole depth estimate (~8 cm)
 DEFAULT_DEPTH_MED_M = 0.05            # Medium pothole depth estimate (~5 cm)
 DEFAULT_DEPTH_LOW_M = 0.03            # Minor surface ravelling depth (~3 cm)
 
+# Notification & Dispatch Configuration
+NOTIFICATION_COOLING_HOURS = 48.0     # Suppress duplicate alerts for nearby incidents within 48 hours
+DUPLICATE_DISTANCE_THRESHOLD_M = 50.0 # Proximity threshold (50m) for spatial deduplication
+SMTP_ENABLED = os.getenv("SMTP_ENABLED", "false").lower() in ("true", "1")
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.roadsentinel.local")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "dispatch@roadsentinel.ai")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "dispatch@roadsentinel.ai")
+SMTP_FROM_NAME = "RoadSentinel AI Dispatch"

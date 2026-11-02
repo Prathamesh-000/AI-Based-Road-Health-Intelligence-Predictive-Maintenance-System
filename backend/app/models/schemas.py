@@ -34,6 +34,27 @@ class SLAStatus(str, Enum):
     BREACHED = "BREACHED"
 
 
+class NotificationChannel(str, Enum):
+    EMAIL = "EMAIL"
+    WEBHOOK = "WEBHOOK"
+    SMS = "SMS"
+
+
+class NotificationStatus(str, Enum):
+    SENT = "SENT"
+    SUPPRESSED = "SUPPRESSED"
+    FAILED = "FAILED"
+    PENDING = "PENDING"
+
+
+class NotificationEvent(str, Enum):
+    INCIDENT_ASSIGNED = "INCIDENT_ASSIGNED"
+    SLA_REMINDER = "SLA_REMINDER"
+    SLA_BREACHED = "SLA_BREACHED"
+    REWORK_REQUIRED = "REWORK_REQUIRED"
+    REPAIR_VERIFIED = "REPAIR_VERIFIED"
+
+
 class BoundingBox(BaseModel):
     x1: float
     y1: float
@@ -131,6 +152,24 @@ class VideoProcessingSummary(BaseModel):
     defects: List[TrackedDefect]
 
 
+class NotificationLog(BaseModel):
+    id: str
+    incident_id: str
+    contractor_id: str
+    recipient_email: str
+    event: NotificationEvent
+    channel: NotificationChannel = NotificationChannel.EMAIL
+    status: NotificationStatus
+    subject: str
+    html_content: str
+    plain_text: str
+    created_at: datetime
+    sent_at: Optional[datetime] = None
+    suppression_reason: Optional[str] = None
+    attempt_count: int = 1
+    delivery_response: Optional[str] = None
+
+
 class CreateIncidentFromDetectionRequest(BaseModel):
     defect_type: DefectCategory
     severity: SeverityLevel
@@ -149,21 +188,9 @@ class UpdateIncidentStatusRequest(BaseModel):
     actor: str = "Municipal Dispatcher"
     notes: Optional[str] = None
 
-class CreateIncidentFromDetectionRequest(BaseModel):
-    defect_type: DefectCategory
-    severity: SeverityLevel
-    latitude: float
-    longitude: float
-    road_name: Optional[str] = None
-    surface_area_m2: float
-    estimated_depth_m: float
-    volume_m3: float
-    asphalt_required_kg: float
-    evidence_image_url: str
 
-
-class UpdateIncidentStatusRequest(BaseModel):
-    new_status: IncidentStatus
-    actor: str = "Municipal Dispatcher"
-    notes: Optional[str] = None
-
+class DispatchIncidentRequest(BaseModel):
+    event: NotificationEvent = NotificationEvent.INCIDENT_ASSIGNED
+    channel: NotificationChannel = NotificationChannel.EMAIL
+    custom_notes: Optional[str] = None
+    force_resend: bool = False

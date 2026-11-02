@@ -5,13 +5,14 @@ from fastapi.staticfiles import StaticFiles
 from app.core.config import PROJECT_NAME, VERSION, API_PREFIX, STORAGE_DIR
 from app.api.routes_detect import router as detect_router
 from app.api.routes_incidents import router as incidents_router
+from app.api.routes_notifications import router as notifications_router
 
-PHASE = "Phase 1 & Phase 2 - Perception, Geospatial Matching & Incident State Machine"
+PHASE = "Phase 1, 2 & 3 - Perception, Spatial Matching & Automated Dispatch Engine"
 
 app = FastAPI(
     title=PROJECT_NAME,
     version=VERSION,
-    description="AI-Powered Road Health Intelligence - Phase 2: Geospatial Matching & Incident State Machine"
+    description="AI-Powered Road Health Intelligence - Phase 3: Automated Contractor Notification & Dispatch Engine"
 )
 
 # Enable CORS for frontend integration
@@ -29,6 +30,7 @@ app.mount("/storage", StaticFiles(directory=str(STORAGE_DIR)), name="storage")
 # Include Routers
 app.include_router(detect_router, prefix=API_PREFIX)
 app.include_router(incidents_router, prefix=API_PREFIX)
+app.include_router(notifications_router, prefix=API_PREFIX)
 
 
 @app.get("/health", tags=["System"])
@@ -52,6 +54,9 @@ async def root():
             "detect_image": f"{API_PREFIX}/detect/image",
             "list_incidents": f"{API_PREFIX}/incidents",
             "create_incident": f"{API_PREFIX}/incidents/create-from-detection",
+            "list_notifications": f"{API_PREFIX}/notifications",
+            "preview_notification": f"{API_PREFIX}/notifications/preview/{{incident_id}}",
+            "dispatch_notification": f"{API_PREFIX}/notifications/dispatch/{{incident_id}}",
             "segments_metadata": f"{API_PREFIX}/incidents/metadata/segments",
             "contractors_metadata": f"{API_PREFIX}/incidents/metadata/contractors"
         }

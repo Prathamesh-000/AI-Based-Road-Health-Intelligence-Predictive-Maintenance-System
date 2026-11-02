@@ -9,7 +9,11 @@ from app.models.schemas import (
     DefectCategory,
     GeoLocation,
     PhysicalMetrics,
-    AuditLogEntry
+    AuditLogEntry,
+    NotificationLog,
+    NotificationStatus,
+    NotificationEvent,
+    NotificationChannel
 )
 from app.services.spatial import GeospatialMatcher
 from app.services.sla import SLAEngine
@@ -29,17 +33,18 @@ VALID_TRANSITIONS: Dict[IncidentStatus, List[IncidentStatus]] = {
 
 class IncidentDatabase:
     """
-    High-performance Incident Repository with a validated state machine
-    and immutable audit trails.
+    High-performance Incident & Notification Repository with a validated
+    state machine and immutable audit trails.
     """
     def __init__(self):
         self.incidents: Dict[str, Incident] = {}
+        self.notifications: Dict[str, NotificationLog] = {}
         self.spatial_matcher = GeospatialMatcher()
         self.seed_sample_data()
 
     def seed_sample_data(self):
         """
-        Seeds realistic municipal road distress incidents for immediate demonstration.
+        Seeds realistic municipal road distress incidents and past notification logs for immediate demonstration.
         """
         now = datetime.now(timezone.utc)
 
@@ -79,8 +84,34 @@ class IncidentDatabase:
                     new_status=IncidentStatus.ASSIGNED,
                     actor="Spatial Dispatch Engine",
                     notes=f"Assigned to {ctr1.name} (Contract #{ctr1.id})"
+                ),
+                AuditLogEntry(
+                    timestamp=now - timedelta(hours=5, minutes=57),
+                    previous_status=IncidentStatus.ASSIGNED,
+                    new_status=IncidentStatus.ASSIGNED,
+                    actor="Notification Dispatch Engine",
+                    notes=f"Automated INCIDENT_ASSIGNED dispatch sent to {ctr1.email}"
                 )
             ]
+        )
+
+        # Seed notification for Incident 1
+        notif1 = NotificationLog(
+            id="NOTIF-2026-SAMPLE1",
+            incident_id=inc1.id,
+            contractor_id=ctr1.id,
+            recipient_email=ctr1.email,
+            event=NotificationEvent.INCIDENT_ASSIGNED,
+            channel=NotificationChannel.EMAIL,
+            status=NotificationStatus.SENT,
+            subject=f"[RoadSentinel AI] INCIDENT_ASSIGNED: POTHOLE on {seg1.name} (HIGH Priority)",
+            html_content="<p>Sample pre-seeded dispatch email content.</p>",
+            plain_text="Sample pre-seeded dispatch plain text.",
+            created_at=now - timedelta(hours=5, minutes=57),
+            sent_at=now - timedelta(hours=5, minutes=57),
+            suppression_reason=None,
+            attempt_count=1,
+            delivery_response="Simulated SMTP delivery successful (Test Mode)"
         )
 
         # Incident 2: Medium severity alligator crack in Central Boulevard
@@ -132,7 +163,9 @@ class IncidentDatabase:
 
         self.incidents[inc1.id] = inc1
         self.incidents[inc2.id] = inc2
+        self.notifications[notif1.id] = notif1
 
+    # Incident Operations
     def create_incident(self, incident: Incident) -> Incident:
         self.incidents[incident.id] = incident
         return incident
@@ -140,7 +173,6 @@ class IncidentDatabase:
     def get_incident(self, incident_id: str) -> Optional[Incident]:
         inc = self.incidents.get(incident_id)
         if inc:
-            # Refresh live SLA remaining hours
             inc.sla_metrics = SLAEngine.calculate_sla(inc.severity, inc.created_at)
         return inc
 
@@ -153,7 +185,6 @@ class IncidentDatabase:
     ) -> List[Incident]:
         results = []
         for inc in self.incidents.values():
-            # Refresh live SLA status
             inc.sla_metrics = SLAEngine.calculate_sla(inc.severity, inc.created_at)
 
             if status and inc.status != status:
@@ -166,7 +197,6 @@ class IncidentDatabase:
                 continue
             results.append(inc)
 
-        # Sort by creation time descending (newest first)
         results.sort(key=lambda x: x.created_at, reverse=True)
         return results
 
@@ -177,10 +207,6 @@ class IncidentDatabase:
         actor: str = "Dispatcher",
         notes: Optional[str] = None
     ) -> Incident:
-        """
-        Validates state machine transitions against the strict state graph.
-        Raises ValueError on illegal transitions.
-        """
         incident = self.get_incident(incident_id)
         if not incident:
             raise KeyError(f"Incident with ID '{incident_id}' does not exist.")
@@ -194,7 +220,6 @@ class IncidentDatabase:
                 f"Valid next states are: {[s.value for s in allowed_next]}"
             )
 
-        # Apply state transition
         incident.status = new_status
         now = datetime.now(timezone.utc)
         incident.audit_trail.append(AuditLogEntry(
@@ -207,7 +232,36 @@ class IncidentDatabase:
 
         return incident
 
+    # Notification Repository Operations
+    def save_notification(self, log: NotificationLog) -> NotificationLog:
+        self.notifications[log.id] = log
+        return log
+
+    def get_notification(self, notif_id: str) -> Optional[NotificationLog]:
+        return self.notifications.get(notif_id)
+
+    def list_notifications(
+        self,
+        incident_id: Optional[str] = None,
+        contractor_id: Optional[str] = None,
+        status: Optional[NotificationStatus] = None,
+        event: Optional[NotificationEvent] = None
+    ) -> List[NotificationLog]:
+        results = []
+        for notif in self.notifications.values():
+            if incident_id and notif.incident_id != incident_id:
+                continue
+            if contractor_id and notif.contractor_id != contractor_id:
+                continue
+            if status and notif.status != status:
+                continue
+            if event and notif.event != event:
+                continue
+            results.append(notif)
+
+        results.sort(key=lambda x: x.created_at, reverse=True)
+        return results
+
 
 # Global database instance
 db = IncidentDatabase()
-
