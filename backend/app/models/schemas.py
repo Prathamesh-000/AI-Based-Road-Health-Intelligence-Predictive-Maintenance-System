@@ -55,6 +55,12 @@ class NotificationEvent(str, Enum):
     REPAIR_VERIFIED = "REPAIR_VERIFIED"
 
 
+class VerificationOutcome(str, Enum):
+    REPAIR_SUCCESSFUL = "REPAIR_SUCCESSFUL"
+    REPAIR_INCOMPLETE = "REPAIR_INCOMPLETE"
+    VERIFICATION_UNCERTAIN = "VERIFICATION_UNCERTAIN"
+
+
 class BoundingBox(BaseModel):
     x1: float
     y1: float
@@ -107,6 +113,22 @@ class Contractor(BaseModel):
     completed_repairs: int = 0
 
 
+class ContractorScorecard(BaseModel):
+    contractor_id: str
+    contractor_name: str
+    company: str
+    email: str
+    phone: str
+    assigned_zones: List[str]
+    total_assigned: int
+    in_progress: int
+    pending_verification: int
+    verified_completed: int
+    rework_required: int
+    on_time_completion_rate: float
+    performance_score: float
+
+
 class AuditLogEntry(BaseModel):
     timestamp: datetime
     previous_status: Optional[IncidentStatus]
@@ -129,6 +151,50 @@ class Incident(BaseModel):
     evidence_image_url: str
     pci_deduct_points: float
     audit_trail: List[AuditLogEntry] = []
+
+
+class RepairSubmission(BaseModel):
+    id: str
+    incident_id: str
+    contractor_id: str
+    submitted_at: datetime
+    submission_latitude: float
+    submission_longitude: float
+    submission_accuracy_m: Optional[float] = 5.0
+    repair_photo_url: str
+    asphalt_mix_type: Optional[str] = "Hot-Mix Asphalt (HMA)"
+    asphalt_used_kg: Optional[float] = None
+    engineering_notes: Optional[str] = None
+    exif_metadata: Optional[Dict[str, Any]] = None
+
+
+class VerificationReport(BaseModel):
+    report_id: str
+    incident_id: str
+    submission_id: str
+    outcome: VerificationOutcome
+    confidence_score: float
+    homography_aligned: bool
+    feature_matches_count: int
+    geofence_verified: bool
+    geofence_distance_m: float
+    duplicate_suspected: bool
+    phash_distance: int
+    residual_defect_found: bool
+    residual_defect_confidence: Optional[float] = None
+    patch_texture_score: float
+    visual_diff_url: Optional[str] = None
+    explanation: str
+    evaluated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class RepairSubmissionResponse(BaseModel):
+    submission: RepairSubmission
+    incident_id: str
+    previous_status: IncidentStatus
+    new_status: IncidentStatus
+    message: str
+    verification_report: Optional[VerificationReport] = None
 
 
 class TrackedDefect(BaseModel):
@@ -189,8 +255,18 @@ class UpdateIncidentStatusRequest(BaseModel):
     notes: Optional[str] = None
 
 
+class AcknowledgeIncidentRequest(BaseModel):
+    actor: str = "Contractor Maintenance Crew"
+    notes: Optional[str] = "Dispatched repair vehicle to site"
+
+
 class DispatchIncidentRequest(BaseModel):
     event: NotificationEvent = NotificationEvent.INCIDENT_ASSIGNED
     channel: NotificationChannel = NotificationChannel.EMAIL
     custom_notes: Optional[str] = None
     force_resend: bool = False
+
+
+class VerifyIncidentRequest(BaseModel):
+    force_override: bool = False
+    manual_notes: Optional[str] = None
