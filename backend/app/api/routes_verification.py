@@ -135,3 +135,4 @@ def get_visual_diff_card(incident_id: str):
         raise HTTPException(status_code=404, detail="Visual difference audit card file missing on disk.")
 
     return FileResponse(path=str(resolved), media_type="image/jpeg", filename=resolved.name)
+

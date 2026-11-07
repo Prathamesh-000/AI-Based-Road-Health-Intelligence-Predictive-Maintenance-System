@@ -22,6 +22,17 @@ Traditional road maintenance systems suffer from a critical operational breakdow
 5. **AI Verification:** Warps perspective using planar homography and executes dual-head validation to confirm defect resolution.
 6. **Civic Transparency:** Publishes verified before-and-after audit logs to a public GIS heatmap and computes the municipal Road Health Index (RHI).
 
+### 🚀 Implementation Milestones
+
+| Milestone | Capability | Status | Verification Suite |
+| :--- | :--- | :--- | :--- |
+| **Phase 1** | Computer Vision Perception, Monocular Volumetrics & ByteTrack MOT | ✅ **Complete** | [`tests/test_phase1.py`](backend/tests/test_phase1.py) (100% Passed) |
+| **Phase 2** | Geospatial Boundary Matching, Dynamic SLA & ASTM D6433 PCI Engine | ✅ **Complete** | [`tests/test_phase2.py`](backend/tests/test_phase2.py) (100% Passed) |
+| **Phase 3** | Automated Contractor Notification Dispatch & Anti-Spam Suppression | ✅ **Complete** | [`tests/test_phase3.py`](backend/tests/test_phase3.py) (100% Passed) |
+| **Phase 4** | Contractor Dashboard, Work Order Management & Telemetry Evidence | ✅ **Complete** | [`tests/test_phase4.py`](backend/tests/test_phase4.py) (100% Passed) |
+| **Phase 5** | Closed-Loop AI Verification, pHash Anti-Fraud & Planar Homography | ✅ **Complete** | [`tests/test_phase5.py`](backend/tests/test_phase5.py) (100% Passed) |
+| **Phase 6** | Public Transparency Portal, GIS Heatmap & Road Health Index (PCI) | ⏳ **Next** | In Progress |
+
 ---
 
 ## 🏛️ System Architecture
@@ -335,10 +346,20 @@ The implementation is structured into **6 sequential phases**. Each phase produc
 | `POST` | `/api/v1/detect/image` | Run single-frame distress detection and volume math | Internal / Citizen |
 | `GET` | `/api/v1/incidents` | List incidents with filtering (status, severity, road) | Public / Contractor |
 | `GET` | `/api/v1/incidents/{id}` | Retrieve complete incident audit trail and evidence | Public / Contractor |
+| `POST` | `/api/v1/incidents/create-from-detection` | Promote detected defect to tracked municipal ticket | System / Dispatcher |
+| `PATCH`| `/api/v1/incidents/{id}/status` | Validate and transition lifecycle state | Dispatcher / System |
+| `GET` | `/api/v1/notifications` | List dispatched contractor notification audit logs | Admin / Dispatcher |
+| `GET` | `/api/v1/notifications/preview/{incident_id}` | Render responsive HTML/Plaintext work order email preview | Admin / Dispatcher |
+| `POST` | `/api/v1/notifications/dispatch/{incident_id}` | Dispatch email notification with 48h cooling suppression | Dispatcher / System |
 | `GET` | `/api/v1/contractors` | Retrieve contractor registry and performance scorecards | Municipal Admin |
-| `GET` | `/api/v1/contractors/{id}/assigned` | Retrieve incident queue for a specific contractor | Contractor |
-| `POST` | `/api/v1/contractors/submit-repair` | Submit repair photo; triggers AI verification | Contractor |
-| `POST` | `/api/v1/verify/evaluate` | On-demand verification execution between two images | Admin / Testing |
+| `GET` | `/api/v1/contractors/{contractor_id}/queue` | Retrieve active work order queue for a contractor | Contractor |
+| `POST` | `/api/v1/contractors/{contractor_id}/acknowledge/{incident_id}` | Acknowledge ticket and mark status IN_PROGRESS | Contractor Crew |
+| `POST` | `/api/v1/contractors/submit-repair` | Submit repair photo + GPS telemetry; queues auto-verification | Contractor |
+| `POST` | `/api/v1/verify/{incident_id}` | Execute closed-loop AI verification on submitted repair | System / Reviewer |
+| `GET` | `/api/v1/verify/{incident_id}/report` | Retrieve verification report, telemetry & confidence | Public / Contractor |
+| `GET` | `/api/v1/verify/reports` | List verification reports filtered by outcome | Municipal Admin |
+| `POST` | `/api/v1/verify/evaluate-images` | Direct comparison & forensic evaluation of any 2 photos | Admin / Testing |
+| `GET` | `/api/v1/verify/visual-diff/{incident_id}` | Download 3-panel before/after/diff audit image card | Public / Citizen |
 | `GET` | `/api/v1/public/rhi` | Retrieve municipal Road Health Index (PCI) score | Public |
 | `GET` | `/api/v1/public/portal` | Public road status feed | Public |
 
