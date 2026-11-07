@@ -270,3 +270,79 @@ class DispatchIncidentRequest(BaseModel):
 class VerifyIncidentRequest(BaseModel):
     force_override: bool = False
     manual_notes: Optional[str] = None
+
+
+# Phase 6: Public Transparency & Civic Intelligence Models
+class RoadHealthRating(str, Enum):
+    EXCELLENT = "EXCELLENT"       # 85 - 100
+    GOOD = "GOOD"                 # 70 - 84
+    FAIR = "FAIR"                 # 55 - 69
+    POOR = "POOR"                 # 40 - 54
+    VERY_POOR = "VERY_POOR"       # 25 - 39
+    FAILED = "FAILED"             # 0 - 24
+
+
+class RoadSegmentHealth(BaseModel):
+    segment_id: str
+    name: str
+    zone: str
+    contractor_id: str
+    contractor_name: str
+    total_length_km: float
+    active_defects_count: int
+    verified_repairs_count: int
+    total_pci_deduct: float
+    rhi_score: float
+    health_rating: RoadHealthRating
+
+
+class MunicipalRHIResponse(BaseModel):
+    city_name: str = "Metro Infrastructure Network"
+    overall_rhi_score: float
+    health_rating: RoadHealthRating
+    total_incidents_logged: int
+    active_hazards_count: int
+    in_remediation_count: int
+    verified_repairs_count: int
+    repaired_pci_restored: float
+    asphalt_laid_kg: float
+    evaluated_at: datetime
+    segment_breakdown: List[RoadSegmentHealth]
+
+
+class GeoJSONGeometry(BaseModel):
+    type: str = "Point"
+    coordinates: List[float]  # [longitude, latitude]
+
+
+class GeoJSONFeature(BaseModel):
+    type: str = "Feature"
+    geometry: GeoJSONGeometry
+    properties: Dict[str, Any]
+
+
+class GeoJSONFeatureCollection(BaseModel):
+    type: str = "FeatureCollection"
+    features: List[GeoJSONFeature]
+
+
+class PublicAuditCard(BaseModel):
+    incident_id: str
+    defect_type: DefectCategory
+    severity: SeverityLevel
+    status: IncidentStatus
+    road_name: str
+    zone: str
+    contractor_name: str
+    latitude: float
+    longitude: float
+    reported_at: datetime
+    verified_at: Optional[datetime] = None
+    evidence_image_url: str
+    repair_photo_url: Optional[str] = None
+    visual_diff_url: Optional[str] = None
+    confidence_score: Optional[float] = None
+    feature_matches_count: Optional[int] = None
+    texture_compliance_score: Optional[float] = None
+    explanation: Optional[str] = None
+    asphalt_used_kg: Optional[float] = None

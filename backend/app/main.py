@@ -10,15 +10,16 @@ from app.api.routes_incidents import router as incidents_router
 from app.api.routes_notifications import router as notifications_router
 from app.api.routes_contractors import router as contractors_router
 from app.api.routes_verification import router as verification_router
+from app.api.routes_public import router as public_router
 
-PHASE = "Phase 1 to 5 - Perception, Spatial Matching, Notification Dispatch, Contractor Portal & Closed-Loop AI Verification"
+PHASE = "Phase 1 to 6 - Perception, Spatial Matching, Notification Dispatch, Contractor Portal, AI Verification & Civic Intelligence"
 STATIC_DIR = BASE_DIR / "static"
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
     title=PROJECT_NAME,
     version=VERSION,
-    description="AI-Powered Road Health Intelligence - Phase 5: Closed-Loop AI Verification & Anti-Fraud Engine"
+    description="AI-Powered Road Health Intelligence - Phase 6: Public Transparency Portal & Civic Intelligence"
 )
 
 # Enable CORS for frontend integration
@@ -42,6 +43,7 @@ app.include_router(incidents_router, prefix=API_PREFIX)
 app.include_router(notifications_router, prefix=API_PREFIX)
 app.include_router(contractors_router, prefix=API_PREFIX)
 app.include_router(verification_router, prefix=API_PREFIX)
+app.include_router(public_router, prefix=API_PREFIX)
 
 
 @app.get("/health", tags=["System"])
@@ -63,6 +65,16 @@ async def get_dashboard_html():
     return HTMLResponse("<h1>Contractor Dashboard</h1><p>Dashboard UI loading...</p>")
 
 
+@app.get("/public", response_class=HTMLResponse, tags=["Civic Portal"])
+@app.get("/portal", response_class=HTMLResponse, tags=["Civic Portal"])
+async def get_public_portal_html():
+    portal_file = STATIC_DIR / "public_portal.html"
+    if portal_file.exists():
+        with open(portal_file, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    return HTMLResponse("<h1>Civic Portal</h1><p>Public Transparency Portal loading...</p>")
+
+
 @app.get("/", tags=["System"])
 async def root():
     return {
@@ -70,6 +82,7 @@ async def root():
         "phase": PHASE,
         "docs_url": "/docs",
         "dashboard_url": "/dashboard",
+        "public_portal_url": "/public",
         "endpoints": {
             "detect_video": f"{API_PREFIX}/detect/video",
             "detect_image": f"{API_PREFIX}/detect/image",
@@ -84,6 +97,10 @@ async def root():
             "verify_incident": f"{API_PREFIX}/verify/{{incident_id}}",
             "verification_report": f"{API_PREFIX}/verify/{{incident_id}}/report",
             "list_verification_reports": f"{API_PREFIX}/verify/reports",
-            "evaluate_images": f"{API_PREFIX}/verify/evaluate-images"
+            "evaluate_images": f"{API_PREFIX}/verify/evaluate-images",
+            "public_rhi": f"{API_PREFIX}/public/rhi",
+            "public_hazards_geojson": f"{API_PREFIX}/public/hazards",
+            "public_audit_feed": f"{API_PREFIX}/public/audit-feed",
+            "public_segments": f"{API_PREFIX}/public/segments"
         }
     }

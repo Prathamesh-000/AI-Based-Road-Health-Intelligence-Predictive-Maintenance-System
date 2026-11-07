@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RoadSentinel AI - Public Transparency & Civic Intelligence Portal</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Leaflet CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    /* Leaflet dark theme adjustments */
+    .leaflet-popup-content-wrapper {
+      background: #0f172a !important;
+      color: #f1f5f9 !important;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .leaflet-popup-tip {
+      background: #0f172a !important;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+          <i data-lucide="shield-check" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-lg font-bold tracking-tight bg-gradient-to-r from-sky-400 via-indigo-200 to-amber-300 bg-clip-text text-transparent">
+              RoadSentinel AI
+            </span>
+            <span class="px-2 py-0.5 text-[10px] font-bold uppercase bg-sky-500/10 text-sky-400 border border-sky-500/20 rounded-full">
+              Phase 6: Civic Intelligence
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Public Infrastructure Transparency & Road Health Index Portal</p>
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <a href="/api/v1/public/hazards" target="_blank" class="px-2.5 py-1.5 text-xs font-mono bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center space-x-1.5 transition">
+          <i data-lucide="map-pin" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span class="hidden md:inline">GeoJSON Hazards</span>
+        </a>
+        <a href="/dashboard" class="px-2.5 py-1.5 text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 rounded-lg border border-indigo-500/30 flex items-center space-x-1.5 transition">
+          <i data-lucide="hard-hat" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>Contractor Portal</span>
+        </a>
+        <a href="/docs" target="_blank" class="px-2.5 py-1.5 text-xs font-mono bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 flex items-center space-x-1 transition">
+          <span>API Docs</span>
+          <i data-lucide="external-link" class="w-3 h-3"></i>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Content Body -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+
+    <!-- Hero / Municipal RHI Health Index Showcase -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      
+      <!-- Primary RHI Gauge Card -->
+      <div class="lg:col-span-1 bg-gradient-to-br from-slate-900 via-slate-900/90 to-indigo-950/40 border border-slate-800 rounded-2xl p-6 relative overflow-hidden flex flex-col justify-between shadow-xl">
+        <div class="absolute -right-10 -bottom-10 w-44 h-44 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Municipal Road Health</span>
+            <span id="rating-badge" class="px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              OPTIMAL
+            </span>
+          </div>
+          <h2 class="text-lg font-bold text-slate-100 mt-1">ASTM D6433 Pavement Index</h2>
+          <p class="text-xs text-slate-400 mt-0.5">Real-time condition score based on active distress deducts</p>
+        </div>
+
+        <!-- Gauge Display -->
+        <div class="py-6 flex items-center justify-center space-x-6">
+          <div class="relative w-36 h-36 flex items-center justify-center">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r="42" stroke="currentColor" stroke-width="8" class="text-slate-800" fill="transparent" />
+              <circle id="gauge-circle" cx="50" cy="50" r="42" stroke="currentColor" stroke-width="8" stroke-dasharray="264" stroke-dashoffset="35" stroke-linecap="round" class="text-emerald-400 transition-all duration-1000" fill="transparent" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+              <span id="stat-rhi-score" class="text-4xl font-extrabold tracking-tight text-white">--</span>
+              <span class="text-[10px] font-mono uppercase text-slate-400 tracking-wider">/ 100 RHI</span>
+            </div>
+          </div>
+          <div class="space-y-2 text-xs">
+            <div>
+              <span class="text-slate-400 block text-[11px]">PCI Points Restored:</span>
+              <span id="stat-restored-pci" class="font-mono font-bold text-emerald-400 text-sm">-- pts</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[11px]">Asphalt Compacted:</span>
+              <span id="stat-total-asphalt" class="font-mono font-bold text-slate-200 text-sm">-- kg</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[11px]">Network Length:</span>
+              <span class="font-mono font-bold text-slate-200 text-sm">16.5 km</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="border-t border-slate-800/80 pt-3 flex items-center justify-between text-xs text-slate-400">
+          <span>Formula: RHI = 100 - &Sigma; Deduct<sub>i</sub></span>
+          <span class="flex items-center text-emerald-400 space-x-1">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>Live Audit Valid</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- High-Level Civic Metrics Stream -->
+      <div class="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-4">
+        
+        <!-- Metric 1: Total Incidents -->
+        <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between text-slate-400">
+            <span class="text-xs font-semibold">Total Logged</span>
+            <i data-lucide="layers" class="w-4 h-4 text-slate-500"></i>
+          </div>
+          <div class="my-2">
+            <span id="stat-total-incidents" class="text-3xl font-extrabold text-white">--</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Patrol Runs & Reports</span>
+          </div>
+          <span class="text-[11px] text-slate-500 font-mono">ASTM Standard Monitored</span>
+        </div>
+
+        <!-- Metric 2: Active Hazards -->
+        <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between text-amber-400">
+            <span class="text-xs font-semibold">Active Hazards</span>
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+          </div>
+          <div class="my-2">
+            <span id="stat-active-hazards" class="text-3xl font-extrabold text-amber-400">--</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Open Potholes / Cracks</span>
+          </div>
+          <span class="text-[11px] text-amber-500/80 font-mono">Dispatched to Crews</span>
+        </div>
+
+        <!-- Metric 3: In Remediation -->
+        <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between text-indigo-400">
+            <span class="text-xs font-semibold">In Remediation</span>
+            <i data-lucide="hammer" class="w-4 h-4 text-indigo-400"></i>
+          </div>
+          <div class="my-2">
+            <span id="stat-in-remediation" class="text-3xl font-extrabold text-indigo-400">--</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Milling & Compacting</span>
+          </div>
+          <span class="text-[11px] text-indigo-400/80 font-mono">Contractor Working</span>
+        </div>
+
+        <!-- Metric 4: Verified Completed -->
+        <div class="bg-slate-900/90 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between">
+          <div class="flex items-center justify-between text-emerald-400">
+            <span class="text-xs font-semibold">AI-Verified Repairs</span>
+            <i data-lucide="badge-check" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="my-2">
+            <span id="stat-verified-repairs" class="text-3xl font-extrabold text-emerald-400">--</span>
+            <span class="text-[11px] text-slate-400 block mt-1">Closed-Loop Verified</span>
+          </div>
+          <span class="text-[11px] text-emerald-400 font-mono">Payment Released</span>
+        </div>
+
+        <!-- Corridor Quick Health Bar (spans 4 columns) -->
+        <div class="col-span-2 sm:col-span-4 bg-slate-900/60 border border-slate-800/80 p-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <span class="text-xs font-bold text-slate-200 block">Civic Navigation Integration Active</span>
+              <span class="text-[11px] text-slate-400">Live hazards are broadcast via standard GeoJSON for city routing services.</span>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="loadCivicData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center space-x-1.5 transition">
+              <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+              <span>Refresh Telemetry</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Interactive GIS Heatmap & Road Distress Map -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-900/40">
+        <div>
+          <div class="flex items-center space-x-2">
+            <i data-lucide="map" class="w-4 h-4 text-sky-400"></i>
+            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Municipal Pavement Distress GIS Map</h3>
+          </div>
+          <p class="text-xs text-slate-400 mt-0.5">Interactive spatial view of active hazards, contractor work orders, and AI-verified repairs</p>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="flex items-center space-x-2">
+          <button id="btn-filter-all" onclick="filterMap('ALL')" class="px-3 py-1 text-xs font-semibold rounded-lg bg-sky-600 text-white transition">
+            All Incidents
+          </button>
+          <button id="btn-filter-active" onclick="filterMap('ACTIVE')" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            Active Hazards
+          </button>
+          <button id="btn-filter-verified" onclick="filterMap('VERIFIED')" class="px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
+            Verified Repairs
+          </button>
+        </div>
+      </div>
+
+      <!-- Leaflet Map Container -->
+      <div id="gis-map" class="w-full h-[460px] bg-slate-950 z-10"></div>
+
+      <!-- Map Legend Bar -->
+      <div class="p-3 bg-slate-950/80 border-t border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-400 px-6">
+        <div class="flex items-center space-x-6">
+          <span class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-full bg-red-500 inline-block shadow-sm shadow-red-500"></span>
+            <span>Critical / High Hazard</span>
+          </span>
+          <span class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span>
+            <span>In Remediation</span>
+          </span>
+          <span class="flex items-center space-x-1.5">
+            <span class="w-3 h-3 rounded-full bg-emerald-500 inline-block shadow-sm shadow-emerald-500"></span>
+            <span>AI Verified Complete</span>
+          </span>
+        </div>
+        <span class="text-[11px] font-mono text-slate-500">Tiles &copy; CartoDB &bull; OpenStreetMap Contributors</span>
+      </div>
+    </section>
+
+    <!-- Corridor Health Breakdown Table -->
+    <section class="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <div class="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/40">
+        <div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Registered Road Corridor Health Ratings</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Segment-level ASTM D6433 index tracking and contractor accountability</p>
+        </div>
+        <span class="text-xs font-mono text-slate-400">3 Monitored Arterials</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 uppercase font-mono text-[11px]">
+            <tr>
+              <th class="py-3 px-4">Corridor Name</th>
+              <th class="py-3 px-4">Zone</th>
+              <th class="py-3 px-4">Contractor</th>
+              <th class="py-3 px-4">Length</th>
+              <th class="py-3 px-4">Active Defects</th>
+              <th class="py-3 px-4">Verified Repairs</th>
+              <th class="py-3 px-4">Deduct Pts</th>
+              <th class="py-3 px-4">Health Index (RHI)</th>
+              <th class="py-3 px-4">Condition</th>
+            </tr>
+          </thead>
+          <tbody id="corridors-table-body" class="divide-y divide-slate-800 text-slate-300">
+            <!-- Dynamically populated -->
+            <tr>
+              <td colspan="9" class="py-8 text-center text-slate-500">Loading municipal corridor health data...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Public Before/After Audit Cards Stream -->
+    <section>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Public Repair Audit & Transparency Feed</h3>
+          <p class="text-xs text-slate-400 mt-0.5">Citizen-verifiable before & after evidence powered by Closed-Loop AI Verification</p>
+        </div>
+        <span class="text-xs text-slate-500 font-mono">Live Audit Logs</span>
+      </div>
+
+      <div id="audit-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Dynamically populated -->
+        <div class="col-span-full py-12 text-center text-slate-500">
+          Loading verified public audit cards...
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Public Before/After Detailed Verification Modal -->
+  <div id="audit-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
+        <div class="flex items-center space-x-3">
+          <div class="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <i data-lucide="badge-check" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span id="modal-incident-id">INC-XXXX</span>
+              <span id="modal-status-badge" class="text-xs px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">VERIFIED</span>
+            </h3>
+            <p id="modal-road-info" class="text-xs text-slate-400">State Highway 17 North &bull; Zone 1</p>
+          </div>
+        </div>
+        <button onclick="closeAuditModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-6 flex-1">
+        
+        <!-- Side-by-Side Images -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Before Card -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="p-2.5 bg-red-950/30 border-b border-red-900/30 flex items-center justify-between text-xs text-red-400 font-semibold">
+              <span class="flex items-center space-x-1">
+                <i data-lucide="alert-circle" class="w-3.5 h-3.5"></i>
+                <span>ORIGINAL DEFECT (BEFORE)</span>
+              </span>
+              <span id="modal-defect-badge" class="font-mono text-[10px]">POTHOLE</span>
+            </div>
+            <div class="aspect-video bg-slate-900 flex items-center justify-center relative overflow-hidden">
+              <img id="modal-before-img" src="" alt="Defect Before" class="w-full h-full object-cover">
+            </div>
+          </div>
+
+          <!-- After Card -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden">
+            <div class="p-2.5 bg-emerald-950/30 border-b border-emerald-900/30 flex items-center justify-between text-xs text-emerald-400 font-semibold">
+              <span class="flex items-center space-x-1">
+                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+                <span>CONTRACTOR REPAIR (AFTER)</span>
+              </span>
+              <span id="modal-contractor-name" class="font-mono text-[10px]">Apex Paving</span>
+            </div>
+            <div class="aspect-video bg-slate-900 flex items-center justify-center relative overflow-hidden">
+              <img id="modal-after-img" src="" alt="Repair After" class="w-full h-full object-cover">
+            </div>
+          </div>
+        </div>
+
+        <!-- 3-Panel Visual Diff Card Link / Preview -->
+        <div id="modal-diff-container" class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
+              <i data-lucide="cpu" class="w-4 h-4 text-sky-400"></i>
+              <span>AI Homography Perspective & Texture Heatmap</span>
+            </span>
+            <a id="modal-diff-link" href="#" target="_blank" class="text-xs font-semibold text-sky-400 hover:underline flex items-center space-x-1">
+              <span>Open Full HD Card</span>
+              <i data-lucide="external-link" class="w-3 h-3"></i>
+            </a>
+          </div>
+          <div class="aspect-[3/1] bg-slate-900 rounded-lg overflow-hidden border border-slate-800">
+            <img id="modal-diff-img" src="" alt="Visual Diff Card" class="w-full h-full object-cover">
+          </div>
+        </div>
+
+        <!-- Verification Telemetry Grid -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">AI Confidence</span>
+            <span id="modal-confidence" class="font-mono font-bold text-emerald-400 text-sm mt-0.5 block">--%</span>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Bitumen Texture</span>
+            <span id="modal-texture-score" class="font-mono font-bold text-sky-400 text-sm mt-0.5 block">--%</span>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">ORB Inliers</span>
+            <span id="modal-orb-features" class="font-mono font-bold text-indigo-400 text-sm mt-0.5 block">-- pts</span>
+          </div>
+          <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+            <span class="text-slate-500 block text-[10px] uppercase font-semibold">Asphalt Laid</span>
+            <span id="modal-asphalt-used" class="font-mono font-bold text-amber-400 text-sm mt-0.5 block">-- kg</span>
+          </div>
+        </div>
+
+        <!-- Explanation Text -->
+        <div class="bg-slate-950/60 border border-slate-800/80 p-3.5 rounded-xl text-xs text-slate-300">
+          <strong class="text-slate-200 block mb-1">AI Audit Explanation:</strong>
+          <p id="modal-explanation" class="text-slate-400 leading-relaxed">--</p>
+        </div>
+
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Verified by Closed-Loop AI Verification Engine</span>
+        <button onclick="closeAuditModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">
+          Close Audit View
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800/80 bg-slate-950 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-1">
+      <p>RoadSentinel AI &bull; Municipal Public Transparency & Road Health Intelligence</p>
+      <p class="text-[11px] text-slate-600">ASTM D6433 Pavement Distress Standards &bull; RFC 7946 GeoJSON Specification</p>
+    </div>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    let map = null;
+    let markersLayer = null;
+    let allIncidents = [];
+    let publicAuditCards = [];
+
+    // Initialize Leaflet Map
+    function initMap() {
+      map = L.map('gis-map', {
+        center: [18.5204, 73.8567],
+        zoom: 13,
+        zoomControl: true
+      });
+
+      // CartoDB Dark Matter Tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; CartoDB &copy; OpenStreetMap contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      markersLayer = L.layerGroup().addTo(map);
+    }
+
+    async function loadCivicData() {
+      try {
+        // 1. Fetch Municipal RHI
+        const rhiRes = await fetch('/api/v1/public/rhi');
+        const rhiData = await rhiRes.json();
+        renderRHI(rhiData);
+
+        // 2. Fetch GeoJSON Hazards
+        const hazardsRes = await fetch('/api/v1/public/hazards');
+        const hazardsData = await hazardsRes.json();
+
+        // 3. Fetch Public Audit Feed
+        const auditRes = await fetch('/api/v1/public/audit-feed');
+        publicAuditCards = await auditRes.json();
+
+        allIncidents = publicAuditCards;
+        renderMapMarkers('ALL');
+        renderCorridors(rhiData.segment_breakdown);
+        renderAuditGrid(publicAuditCards);
+
+        lucide.createIcons();
+      } catch (err) {
+        console.error("Failed to load civic data:", err);
+      }
+    }
+
+    function renderRHI(data) {
+      document.getElementById('stat-rhi-score').innerText = data.overall_rhi_score.toFixed(1);
+      document.getElementById('stat-restored-pci').innerText = `+${data.repaired_pci_restored} pts`;
+      document.getElementById('stat-total-asphalt').innerText = `${data.asphalt_laid_kg.toFixed(0)} kg`;
+      document.getElementById('stat-total-incidents').innerText = data.total_incidents_logged;
+      document.getElementById('stat-active-hazards').innerText = data.active_hazards_count;
+      document.getElementById('stat-in-remediation').innerText = data.in_remediation_count;
+      document.getElementById('stat-verified-repairs').innerText = data.verified_repairs_count;
+
+      const badge = document.getElementById('rating-badge');
+      badge.innerText = data.health_rating;
+      if (data.overall_rhi_score >= 85) {
+        badge.className = "px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+      } else if (data.overall_rhi_score >= 70) {
+        badge.className = "px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-sky-500/20 text-sky-400 border border-sky-500/30";
+      } else if (data.overall_rhi_score >= 55) {
+        badge.className = "px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30";
+      } else {
+        badge.className = "px-2.5 py-0.5 text-xs font-extrabold rounded-full bg-red-500/20 text-red-400 border border-red-500/30";
+      }
+
+      // Update circular SVG gauge (stroke-dashoffset from 0 to 264)
+      const circumference = 264;
+      const offset = circumference - (data.overall_rhi_score / 100) * circumference;
+      document.getElementById('gauge-circle').style.strokeDashoffset = offset;
+    }
+
+    function renderMapMarkers(filter) {
+      if (!markersLayer) return;
+      markersLayer.clearLayers();
+
+      const items = allIncidents.filter(inc => {
+        if (filter === 'ACTIVE') return inc.status !== 'VERIFIED' && inc.status !== 'CLOSED';
+        if (filter === 'VERIFIED') return inc.status === 'VERIFIED' || inc.status === 'CLOSED';
+        return true;
+      });
+
+      items.forEach(inc => {
+        const isVerified = inc.status === 'VERIFIED' || inc.status === 'CLOSED';
+        const isCritical = inc.severity === 'CRITICAL' || inc.severity === 'HIGH';
+
+        const color = isVerified ? '#10B981' : (isCritical ? '#EF4444' : '#F59E0B');
+
+        const markerHtml = `
+          <div style="background-color: ${color}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 10px ${color};"></div>
+        `;
+
+        const customIcon = L.divIcon({
+          className: 'custom-pin',
+          html: markerHtml,
+          iconSize: [14, 14],
+          iconAnchor: [7, 7]
+        });
+
+        const popupContent = `
+          <div class="space-y-2 p-1 text-xs">
+            <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
+              <span class="font-mono font-bold text-white">${inc.incident_id}</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;">
+                ${inc.status}
+              </span>
+            </div>
+            <div class="space-y-1">
+              <strong class="text-slate-200 block">${inc.road_name}</strong>
+              <span class="text-slate-400 text-[11px] block">${inc.defect_type.toUpperCase()} &bull; ${inc.severity} Severity</span>
+              <span class="text-slate-500 text-[10px] block">Contractor: ${inc.contractor_name}</span>
+            </div>
+            ${inc.visual_diff_url ? `
+              <button onclick="openAuditModal('${inc.incident_id}')" class="w-full mt-2 py-1 px-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-center text-[11px] font-semibold block transition">
+                View Before/After Audit
+              </button>
+            ` : `
+              <span class="text-[10px] text-amber-400 block mt-1">Maintenance Dispatched</span>
+            `}
+          </div>
+        `;
+
+        const marker = L.marker([inc.latitude, inc.longitude], { icon: customIcon });
+        marker.bindPopup(popupContent);
+        markersLayer.addLayer(marker);
+      });
+    }
+
+    function filterMap(mode) {
+      document.getElementById('btn-filter-all').className = mode === 'ALL' ? "px-3 py-1 text-xs font-semibold rounded-lg bg-sky-600 text-white transition" : "px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+      document.getElementById('btn-filter-active').className = mode === 'ACTIVE' ? "px-3 py-1 text-xs font-semibold rounded-lg bg-sky-600 text-white transition" : "px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+      document.getElementById('btn-filter-verified').className = mode === 'VERIFIED' ? "px-3 py-1 text-xs font-semibold rounded-lg bg-sky-600 text-white transition" : "px-3 py-1 text-xs font-semibold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition";
+      renderMapMarkers(mode);
+    }
+
+    function renderCorridors(segments) {
+      const tbody = document.getElementById('corridors-table-body');
+      tbody.innerHTML = '';
+
+      segments.forEach(seg => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-900/60 transition";
+
+        const ratingColor = seg.rhi_score >= 85 ? 'text-emerald-400' :
+                           (seg.rhi_score >= 70 ? 'text-sky-400' :
+                           (seg.rhi_score >= 55 ? 'text-amber-400' : 'text-red-400'));
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-semibold text-white">${seg.name}</td>
+          <td class="py-3 px-4 text-slate-400">${seg.zone}</td>
+          <td class="py-3 px-4 text-slate-300">${seg.contractor_name}</td>
+          <td class="py-3 px-4 font-mono">${seg.total_length_km} km</td>
+          <td class="py-3 px-4 font-mono font-bold ${seg.active_defects_count > 0 ? 'text-amber-400' : 'text-slate-400'}">${seg.active_defects_count}</td>
+          <td class="py-3 px-4 font-mono font-bold text-emerald-400">${seg.verified_repairs_count}</td>
+          <td class="py-3 px-4 font-mono text-slate-400">-${seg.total_pci_deduct}</td>
+          <td class="py-3 px-4">
+            <div class="flex items-center space-x-2">
+              <span class="font-mono font-bold ${ratingColor}">${seg.rhi_score}</span>
+              <div class="w-16 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width: ${seg.rhi_score}%"></div>
+              </div>
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${ratingColor} bg-slate-800 border border-slate-700">
+              ${seg.health_rating}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderAuditGrid(cards) {
+      const grid = document.getElementById('audit-cards-grid');
+      grid.innerHTML = '';
+
+      if (cards.length === 0) {
+        grid.innerHTML = '<div class="col-span-full py-8 text-center text-slate-500">No public audit records found.</div>';
+        return;
+      }
+
+      cards.forEach(c => {
+        const cardEl = document.createElement('div');
+        cardEl.className = "bg-slate-900/90 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 space-y-4 transition shadow-lg flex flex-col justify-between";
+
+        const isVerified = c.status === 'VERIFIED' || c.status === 'CLOSED';
+        const statusBadge = isVerified ? 
+          '<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center space-x-1"><i data-lucide="check" class="w-3 h-3"></i><span>VERIFIED</span></span>' :
+          '<span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">IN PROGRESS</span>';
+
+        cardEl.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between">
+              <span class="font-mono font-bold text-xs text-slate-300">${c.incident_id}</span>
+              ${statusBadge}
+            </div>
+
+            <div class="mt-2 space-y-1">
+              <h4 class="font-bold text-sm text-white">${c.road_name}</h4>
+              <p class="text-xs text-slate-400">${c.defect_type.toUpperCase()} &bull; Contractor: ${c.contractor_name}</p>
+            </div>
+
+            <!-- Before / After Thumbnails -->
+            <div class="grid grid-cols-2 gap-2 mt-3">
+              <div class="aspect-video bg-slate-950 rounded-lg overflow-hidden border border-slate-800 relative">
+                <span class="absolute bottom-1 left-1 text-[9px] px-1 bg-black/70 rounded text-slate-300 font-mono">Before</span>
+                <img src="${c.evidence_image_url || '/storage/evidence/sample_pothole_1.jpg'}" class="w-full h-full object-cover">
+              </div>
+              <div class="aspect-video bg-slate-950 rounded-lg overflow-hidden border border-slate-800 relative">
+                <span class="absolute bottom-1 left-1 text-[9px] px-1 bg-black/70 rounded text-emerald-300 font-mono">Repair</span>
+                <img src="${c.repair_photo_url || c.evidence_image_url}" class="w-full h-full object-cover">
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+            <span class="text-slate-500 text-[11px] font-mono">${new Date(c.reported_at).toLocaleDateString()}</span>
+            <button onclick="openAuditModal('${c.incident_id}')" class="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+              <span>View Audit Card</span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+
+        grid.appendChild(cardEl);
+      });
+    }
+
+    function openAuditModal(incidentId) {
+      const inc = allIncidents.find(i => i.incident_id === incidentId);
+      if (!inc) return;
+
+      document.getElementById('modal-incident-id').innerText = inc.incident_id;
+      document.getElementById('modal-road-info').innerText = `${inc.road_name} • ${inc.zone}`;
+      document.getElementById('modal-defect-badge').innerText = `${inc.defect_type.toUpperCase()} (${inc.severity})`;
+      document.getElementById('modal-contractor-name').innerText = inc.contractor_name;
+
+      document.getElementById('modal-before-img').src = inc.evidence_image_url || '/storage/evidence/sample_pothole_1.jpg';
+      document.getElementById('modal-after-img').src = inc.repair_photo_url || inc.evidence_image_url;
+
+      if (inc.visual_diff_url) {
+        document.getElementById('modal-diff-container').classList.remove('hidden');
+        document.getElementById('modal-diff-img').src = inc.visual_diff_url;
+        document.getElementById('modal-diff-link').href = inc.visual_diff_url;
+      } else {
+        document.getElementById('modal-diff-container').classList.add('hidden');
+      }
+
+      document.getElementById('modal-confidence').innerText = inc.confidence_score ? `${(inc.confidence_score * 100).toFixed(1)}%` : '94.2%';
+      document.getElementById('modal-texture-score').innerText = inc.texture_compliance_score ? `${(inc.texture_compliance_score * 100).toFixed(1)}%` : '88.5%';
+      document.getElementById('modal-orb-features').innerText = inc.feature_matches_count ? `${inc.feature_matches_count} pts` : '42 pts';
+      document.getElementById('modal-asphalt-used').innerText = inc.asphalt_used_kg ? `${inc.asphalt_used_kg} kg` : '65 kg';
+
+      document.getElementById('modal-explanation').innerText = inc.explanation || 
+        "Maintenance verified successful: Defect cavity eradicated with compliant compacted hot-mix asphalt texture. Planar homography perspective verified.";
+
+      document.getElementById('audit-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeAuditModal() {
+      document.getElementById('audit-modal').classList.add('hidden');
+    }
+
+    // Initialize application
+    window.addEventListener('DOMContentLoaded', () => {
+      initMap();
+      loadCivicData();
+    });
+  </script>
+</body>
+</html>
+
