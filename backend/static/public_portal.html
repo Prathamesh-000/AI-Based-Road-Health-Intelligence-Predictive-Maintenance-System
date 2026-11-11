@@ -481,18 +481,30 @@
           </div>
 
           <!-- Location & Corridor Parameters -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-            <div>
-              <label class="block text-[11px] text-slate-400 mb-1">Road / Corridor Name</label>
-              <input id="patrol-road-name" type="text" value="State Highway 17 North" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
-            </div>
-            <div>
-              <label class="block text-[11px] text-slate-400 mb-1">GPS Coordinates (Lat, Lng)</label>
-              <div class="grid grid-cols-2 gap-1.5">
-                <input id="patrol-lat" type="number" step="0.000001" value="18.520400" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-amber-500">
-                <input id="patrol-lng" type="number" step="0.000001" value="73.856700" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-amber-500">
+          <div class="space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="block text-[11px] text-slate-400 mb-1">Road / Corridor Name</label>
+                <input id="patrol-road-name" type="text" value="State Highway 17 North" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="block text-[11px] text-slate-400">GPS Coordinates (Lat, Lng)</label>
+                  <button type="button" onclick="detectDeviceLocation()" class="text-[10px] text-amber-400 hover:underline flex items-center space-x-1">
+                    <i data-lucide="crosshair" class="w-2.5 h-2.5"></i>
+                    <span>Auto-Detect Device GPS</span>
+                  </button>
+                </div>
+                <div class="grid grid-cols-2 gap-1.5">
+                  <input id="patrol-lat" type="number" step="0.000001" value="18.520400" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-amber-500">
+                  <input id="patrol-lng" type="number" step="0.000001" value="73.856700" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-2 text-slate-200 font-mono text-xs focus:outline-none focus:border-amber-500">
+                </div>
               </div>
             </div>
+            <p class="text-[10px] text-slate-500 flex items-center space-x-1">
+              <i data-lucide="info" class="w-3 h-3 text-slate-400 shrink-0"></i>
+              <span><strong>Automatic Telemetry:</strong> Video-embedded GPS metadata (dashcam/phone) will be extracted automatically. Dynamic road trajectory coordinates are computed for each defect.</span>
+            </p>
           </div>
 
           <!-- Sampling Rate (Only for Video) -->
@@ -975,6 +987,13 @@
                 <span>Depth: ${(d.physical_metrics.estimated_depth_m * 100).toFixed(1)} cm</span>
                 <span class="text-amber-400 font-semibold">Asphalt: ${d.physical_metrics.asphalt_required_kg} kg</span>
               </div>
+              <div class="text-[11px] font-mono text-sky-400 mt-1 flex items-center space-x-2">
+                <span>📍 GPS: ${d.location.latitude.toFixed(6)}, ${d.location.longitude.toFixed(6)}</span>
+                <a href="https://maps.google.com/?q=${d.location.latitude},${d.location.longitude}" target="_blank" class="text-amber-400 hover:underline inline-flex items-center space-x-0.5">
+                  <span>Maps</span>
+                  <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
+                </a>
+              </div>
             </div>
           </div>
 
@@ -1019,6 +1038,22 @@
         loadCivicData(); // Reload map and counters
       } catch (err) {
         alert("Failed to promote defect: " + err.message);
+      }
+    }
+
+    function detectDeviceLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          document.getElementById('patrol-lat').value = lat.toFixed(6);
+          document.getElementById('patrol-lng').value = lng.toFixed(6);
+          alert(`Device GPS locked: ${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+        }, err => {
+          alert("Unable to acquire device GPS: " + err.message);
+        });
+      } else {
+        alert("Geolocation is not supported by your browser.");
       }
     }
 

@@ -17,8 +17,9 @@ from app.models.schemas import (
 )
 from app.services.detector import RoadPerceptionEngine
 from app.services.tracker import ByteTrackDefectTracker
-from app.services.telemetry import TelemetrySynchronizer
+from app.services.telemetry import TelemetrySynchronizer, extract_video_embedded_gps
 from app.services.quantifier import DistressQuantifier
+from app.services.spatial import GeospatialMatcher
 
 router = APIRouter(prefix="/detect", tags=["Phase 1: Perception & Telemetry Engine"])
 detector = RoadPerceptionEngine()
@@ -45,7 +46,16 @@ async def process_video_stream(
     with open(temp_vid_path, "wb") as buffer:
         shutil.copyfileobj(video_file.file, buffer)
 
-    # 2. Save GPX if provided
+    # 2. Extract Embedded GPS Metadata (if present in video container)
+    embedded_gps = extract_video_embedded_gps(temp_vid_path)
+    if embedded_gps:
+        latitude, longitude = embedded_gps
+        print(f"[routes_detect] Extracted embedded GPS metadata from video: ({latitude}, {longitude})")
+        if not road_name or road_name == "State Highway 17 North":
+            matched_seg, _ = GeospatialMatcher().match_location(latitude, longitude)
+            road_name = matched_seg.name
+
+    # 3. Save GPX if provided
     gpx_path_str = None
     if gpx_file and gpx_file.filename:
         temp_gpx_name = f"telemetry_{uuid.uuid4().hex[:8]}.gpx"
@@ -54,10 +64,14 @@ async def process_video_stream(
             shutil.copyfileobj(gpx_file.file, buffer)
         gpx_path_str = str(temp_gpx_path)
 
-    # 3. Initialize Telemetry Synchronizer
-    telemetry_sync = TelemetrySynchronizer(gpx_path=gpx_path_str)
+    # 4. Initialize Telemetry Synchronizer
+    telemetry_sync = TelemetrySynchronizer(
+        gpx_path=gpx_path_str,
+        start_lat=latitude or 18.5204,
+        start_lng=longitude or 73.8567
+    )
 
-    # 4. Open video capture
+    # 5. Open video capture
     cap = cv2.VideoCapture(str(temp_vid_path))
     if not cap.isOpened():
         raise HTTPException(status_code=400, detail="Unable to decode uploaded video stream.")
@@ -85,11 +99,13 @@ async def process_video_stream(
 
     cap.release()
 
-    # 5. Finalize deduplicated defect tracks
+    # 6. Finalize deduplicated defect tracks with progressive road trajectory
     finalized_defects = tracker.finalize_tracks(
         telemetry_sync=telemetry_sync,
         video_duration=duration,
-        road_name=road_name
+        road_name=road_name,
+        start_lat=latitude or 18.5204,
+        start_lng=longitude or 73.8567
     )
 
     return VideoProcessingSummary(

@@ -118,7 +118,9 @@ class ByteTrackDefectTracker:
         self,
         telemetry_sync: TelemetrySynchronizer,
         video_duration: float,
-        road_name: str = "Patrol Sector"
+        road_name: str = "Patrol Sector",
+        start_lat: float = 18.5204,
+        start_lng: float = 73.8567
     ) -> List[TrackedDefect]:
         """
         Deduplicates tracks, computes physical metrics, fetches spatial GPS,
@@ -153,6 +155,8 @@ class ByteTrackDefectTracker:
             coords = telemetry_sync.get_coordinate_at_time(
                 elapsed_seconds=track["best_timestamp"],
                 total_duration=video_duration,
+                fallback_lat=start_lat,
+                fallback_lng=start_lng,
                 road_name=road_name
             )
 

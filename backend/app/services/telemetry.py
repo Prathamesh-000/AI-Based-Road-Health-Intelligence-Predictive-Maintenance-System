@@ -1,9 +1,42 @@
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import List, Tuple, Optional
 from pathlib import Path
 
 from app.models.schemas import GeoLocation
+
+
+def extract_video_embedded_gps(video_path: Path) -> Optional[Tuple[float, float]]:
+    """
+    Scans MP4/MOV container headers (QuickTime moov/udta atoms) for embedded
+    ISO 6709 location coordinates (e.g. +18.5204+073.8567/) recorded by
+    dashcams, smartphones, and drone telemetry streams.
+    """
+    try:
+        with open(video_path, "rb") as f:
+            # Read first 2MB of video file header (contains moov metadata atoms)
+            chunk = f.read(2 * 1024 * 1024)
+            match = re.search(rb'([+-]\d{2}\.\d{3,})([+-]\d{3}\.\d{3,})', chunk)
+            if match:
+                lat = float(match.group(1).decode("ascii"))
+                lng = float(match.group(2).decode("ascii"))
+                return lat, lng
+
+            # Check tail 2MB in case moov is placed after mdat atom
+            f.seek(0, 2)
+            size = f.tell()
+            if size > 2 * 1024 * 1024:
+                f.seek(max(0, size - (2 * 1024 * 1024)))
+                tail = f.read()
+                match = re.search(rb'([+-]\d{2}\.\d{3,})([+-]\d{3}\.\d{3,})', tail)
+                if match:
+                    lat = float(match.group(1).decode("ascii"))
+                    lng = float(match.group(2).decode("ascii"))
+                    return lat, lng
+    except Exception:
+        pass
+    return None
 
 
 class TelemetryPoint:
@@ -17,10 +50,12 @@ class TelemetryPoint:
 class TelemetrySynchronizer:
     """
     Synchronizes video frame timestamps with spatial telemetry (GPX tracks,
-    NMEA GPS logs, or spatial corridor interpolation).
+    embedded video metadata, or continuous driving trajectory interpolation).
     """
-    def __init__(self, gpx_path: Optional[str] = None):
+    def __init__(self, gpx_path: Optional[str] = None, start_lat: float = 18.5204, start_lng: float = 73.8567):
         self.points: List[TelemetryPoint] = []
+        self.start_lat = start_lat
+        self.start_lng = start_lng
         if gpx_path and Path(gpx_path).exists():
             self.load_gpx(gpx_path)
 
@@ -103,17 +138,23 @@ class TelemetrySynchronizer:
                 road_name=road_name
             )
 
-        # Case B: Fallback spatial corridor interpolation along vehicle heading
-        # Slightly offset coordinates along travel vector for simulation realism
-        drift_rate = 0.00015  # ~15 meters per 10 seconds of travel
-        progress = elapsed_seconds / max(1.0, total_duration)
-        interp_lat = fallback_lat + (progress * drift_rate)
-        interp_lon = fallback_lng + (progress * drift_rate * 0.8)
+        # Case B: Spatial corridor driving trajectory interpolation
+        # Computes realistic forward vehicle motion vector (~35-50 km/h driving speed)
+        lat_base = fallback_lat if fallback_lat is not None else self.start_lat
+        lng_base = fallback_lng if fallback_lng is not None else self.start_lng
+
+        # Vehicle traveling forward: ~12-15 meters per second
+        meters_traveled = elapsed_seconds * 12.0
+        deg_lat_offset = (meters_traveled / 111139.0)
+        deg_lng_offset = (meters_traveled * 0.6 / 111139.0)
+
+        interp_lat = lat_base + deg_lat_offset
+        interp_lon = lng_base + deg_lng_offset
 
         return GeoLocation(
             latitude=round(interp_lat, 6),
             longitude=round(interp_lon, 6),
-            elevation_m=12.0,
+            elevation_m=560.0,
             road_name=road_name
         )
 
