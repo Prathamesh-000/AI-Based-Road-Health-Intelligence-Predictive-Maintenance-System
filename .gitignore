@@ -36,5 +36,6 @@ backend/storage/evidence/*
 !backend/storage/evidence/.gitkeep
 backend/storage/repairs/*
 !backend/storage/repairs/.gitkeep
+backend/storage/Ultralytics/
 
 

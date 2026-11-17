@@ -207,6 +207,8 @@ class TrackedDefect(BaseModel):
     best_frame_evidence: str
     timestamp_sec: float
     frame_number: int
+    assigned_contractor: Optional[Contractor] = None
+    road_segment: Optional[RoadSegment] = None
 
 
 class VideoProcessingSummary(BaseModel):
@@ -216,6 +218,9 @@ class VideoProcessingSummary(BaseModel):
     duration_seconds: float
     unique_defects_count: int
     defects: List[TrackedDefect]
+    road_name: Optional[str] = "State Highway 17 North"
+    road_segment: Optional[RoadSegment] = None
+    assigned_contractor: Optional[Contractor] = None
 
 
 class NotificationLog(BaseModel):

@@ -553,6 +553,38 @@
             <span id="patrol-results-badge" class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400">0 DEFECTS</span>
           </div>
 
+          <!-- Assigned Contractor Banner -->
+          <div id="patrol-contractor-banner" class="bg-gradient-to-r from-sky-950/70 via-slate-900 to-slate-950 border border-sky-500/30 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md hidden">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-lg bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold shrink-0">
+                <i data-lucide="hard-hat" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <div class="flex items-center space-x-2">
+                  <span class="text-[10px] text-sky-400 font-bold uppercase tracking-wider">Assigned Contractor</span>
+                  <span id="patrol-ctr-id" class="px-1.5 py-0.2 rounded text-[10px] font-mono font-bold bg-sky-500/10 text-sky-300 border border-sky-500/20">--</span>
+                </div>
+                <h4 id="patrol-ctr-name" class="text-xs font-bold text-white">--</h4>
+                <div class="text-[11px] text-slate-300 flex flex-wrap items-center gap-2 mt-0.5">
+                  <a id="patrol-ctr-email-link" href="#" class="text-amber-400 hover:underline flex items-center space-x-1 font-mono">
+                    <i data-lucide="mail" class="w-3 h-3 text-amber-400"></i>
+                    <span id="patrol-ctr-email">--</span>
+                  </a>
+                  <span class="text-slate-600">&bull;</span>
+                  <span class="text-slate-300 flex items-center space-x-1">
+                    <i data-lucide="phone" class="w-3 h-3 text-slate-400"></i>
+                    <span id="patrol-ctr-phone">--</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div class="text-left sm:text-right shrink-0 border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0 w-full sm:w-auto">
+              <span class="text-[10px] text-slate-400 uppercase block font-semibold">Corridor Matched</span>
+              <span id="patrol-ctr-corridor" class="text-xs font-bold text-emerald-400">--</span>
+              <span id="patrol-ctr-zone" class="text-[10px] text-slate-400 block font-mono">--</span>
+            </div>
+          </div>
+
           <!-- Video Metrics Bar -->
           <div id="patrol-metrics-summary" class="grid grid-cols-3 gap-2 text-center text-xs bg-slate-950 p-2.5 rounded-xl border border-slate-800">
             <div>
@@ -567,6 +599,18 @@
               <span class="text-[10px] text-slate-500 uppercase block">Unique Defects</span>
               <span id="res-defects-count" class="font-mono font-bold text-amber-400">--</span>
             </div>
+          </div>
+
+          <!-- Quick Actions Bar -->
+          <div id="patrol-quick-actions" class="flex items-center gap-2 hidden">
+            <button type="button" onclick="focusOnGisMap()" class="flex-1 py-1.5 px-3 bg-sky-600/30 hover:bg-sky-600/50 text-sky-300 border border-sky-500/40 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition">
+              <i data-lucide="map-pin" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>🗺️ View Location on GIS Map</span>
+            </button>
+            <button type="button" onclick="autoRegisterAllDefects()" id="btn-register-all" class="flex-1 py-1.5 px-3 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold flex items-center justify-center space-x-1.5 transition">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>⚡ Register All as Official Tickets</span>
+            </button>
           </div>
 
           <!-- Defects List -->
@@ -1018,6 +1062,8 @@
       }
     }
 
+    let currentDetectedDefects = [];
+
     function renderPatrolResults(data) {
       const box = document.getElementById('patrol-results-box');
       box.classList.remove('hidden');
@@ -1035,6 +1081,103 @@
         document.getElementById('res-duration').innerText = "Instant";
         document.getElementById('res-defects-count').innerText = defects.length;
         document.getElementById('patrol-results-badge').innerText = `${defects.length} DEFECTS FOUND`;
+      }
+
+      currentDetectedDefects = defects;
+
+      // Extract matched contractor & corridor
+      const contractor = data.assigned_contractor || (defects[0] ? defects[0].assigned_contractor : null);
+      const roadName = data.road_name || (defects[0] && defects[0].location ? defects[0].location.road_name : "State Highway 17 North");
+      const zone = (data.road_segment ? data.road_segment.zone : "Zone 1 - North Corridor");
+
+      // Populate Contractor Banner
+      const ctrBanner = document.getElementById('patrol-contractor-banner');
+      if (contractor) {
+        ctrBanner.classList.remove('hidden');
+        document.getElementById('patrol-ctr-id').innerText = contractor.id;
+        document.getElementById('patrol-ctr-name').innerText = `${contractor.name} (${contractor.company})`;
+        document.getElementById('patrol-ctr-email').innerText = contractor.email;
+        document.getElementById('patrol-ctr-email-link').href = `mailto:${contractor.email}`;
+        document.getElementById('patrol-ctr-phone').innerText = contractor.phone;
+        document.getElementById('patrol-ctr-corridor').innerText = roadName;
+        document.getElementById('patrol-ctr-zone').innerText = zone;
+      } else {
+        ctrBanner.classList.add('hidden');
+      }
+
+      const quickActions = document.getElementById('patrol-quick-actions');
+      if (defects.length > 0) {
+        quickActions.classList.remove('hidden');
+      } else {
+        quickActions.classList.add('hidden');
+      }
+
+      // Point the location on the Municipal Pavement Distress GIS Map
+      if (defects.length > 0 && map) {
+        const centerLat = defects[0].location.latitude;
+        const centerLng = defects[0].location.longitude;
+
+        // Smoothly pan & zoom map to video coordinates
+        map.flyTo([centerLat, centerLng], 16, { animate: true, duration: 1.2 });
+
+        if (!window.patrolMarkersLayer) {
+          window.patrolMarkersLayer = L.layerGroup().addTo(map);
+        }
+        window.patrolMarkersLayer.clearLayers();
+
+        defects.forEach((d, idx) => {
+          const isCrit = d.severity === 'HIGH' || d.severity === 'CRITICAL';
+          const pinColor = isCrit ? '#EF4444' : '#F59E0B';
+
+          const markerHtml = `
+            <div style="position: relative; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;">
+              <div style="position: absolute; width: 22px; height: 22px; border-radius: 50%; background-color: ${pinColor}; opacity: 0.5; animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+              <div style="background-color: ${pinColor}; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ffffff; box-shadow: 0 0 12px ${pinColor}; position: relative; z-index: 10;"></div>
+            </div>
+          `;
+
+          const radarIcon = L.divIcon({
+            className: 'custom-radar-pin',
+            html: markerHtml,
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+
+          const popupContent = `
+            <div class="space-y-2 p-1 text-xs" style="min-width: 210px;">
+              <div class="flex items-center justify-between border-b border-slate-700 pb-1.5">
+                <span class="font-mono font-bold text-white uppercase">${d.category} #${d.track_id}</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background-color: ${pinColor}20; color: ${pinColor}; border: 1px solid ${pinColor}40;">
+                  ${d.severity}
+                </span>
+              </div>
+              <div class="space-y-1">
+                <strong class="text-slate-200 block text-xs">${d.location.road_name || roadName}</strong>
+                <div class="text-[11px] text-slate-300 font-mono">📍 ${d.location.latitude.toFixed(6)}, ${d.location.longitude.toFixed(6)}</div>
+                <div class="text-[11px] text-amber-400 font-semibold">Asphalt: ${d.physical_metrics.asphalt_required_kg} kg (${(d.physical_metrics.estimated_depth_m*100).toFixed(1)} cm depth)</div>
+              </div>
+              ${contractor ? `
+                <div class="bg-slate-900/90 p-2 rounded border border-slate-800 space-y-0.5 text-[11px]">
+                  <span class="text-[10px] text-slate-400 uppercase block font-semibold">Assigned Contractor</span>
+                  <div class="text-white font-bold">${contractor.name}</div>
+                  <a href="mailto:${contractor.email}" class="text-sky-400 hover:underline block font-mono text-[10px]">📧 ${contractor.email}</a>
+                  <div class="text-slate-400 text-[10px]">📞 ${contractor.phone}</div>
+                </div>
+              ` : ''}
+              <button onclick="promoteDefectToTicket('${encodeURIComponent(JSON.stringify(d))}')" class="w-full mt-2 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-center text-xs font-bold block transition shadow">
+                Register as Official Ticket
+              </button>
+            </div>
+          `;
+
+          const m = L.marker([d.location.latitude, d.location.longitude], { icon: radarIcon });
+          m.bindPopup(popupContent);
+          window.patrolMarkersLayer.addLayer(m);
+
+          if (idx === 0) {
+            setTimeout(() => m.openPopup(), 1400);
+          }
+        });
       }
 
       const list = document.getElementById('patrol-defects-list');
@@ -1067,12 +1210,16 @@
                 <span>Depth: ${(d.physical_metrics.estimated_depth_m * 100).toFixed(1)} cm</span>
                 <span class="text-amber-400 font-semibold">Asphalt: ${d.physical_metrics.asphalt_required_kg} kg</span>
               </div>
-              <div class="text-[11px] font-mono text-sky-400 mt-1 flex items-center space-x-2">
+              <div class="text-[11px] font-mono text-sky-400 mt-1 flex flex-wrap items-center gap-2">
                 <span>📍 GPS: ${d.location.latitude.toFixed(6)}, ${d.location.longitude.toFixed(6)}</span>
                 <a href="https://maps.google.com/?q=${d.location.latitude},${d.location.longitude}" target="_blank" class="text-amber-400 hover:underline inline-flex items-center space-x-0.5">
                   <span>Maps</span>
                   <i data-lucide="external-link" class="w-2.5 h-2.5"></i>
                 </a>
+                ${contractor ? `
+                  <span class="text-slate-600">&bull;</span>
+                  <span class="text-slate-300">Contractor: <strong class="text-white">${contractor.name}</strong> (<a href="mailto:${contractor.email}" class="text-sky-400 hover:underline">${contractor.email}</a>)</span>
+                ` : ''}
               </div>
             </div>
           </div>
@@ -1086,6 +1233,54 @@
       });
 
       lucide.createIcons();
+    }
+
+    function focusOnGisMap() {
+      closePatrolModal();
+      const mapContainer = document.getElementById('map');
+      if (mapContainer) {
+        mapContainer.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    async function autoRegisterAllDefects() {
+      if (!currentDetectedDefects || currentDetectedDefects.length === 0) {
+        alert("No defects to register.");
+        return;
+      }
+
+      const btn = document.getElementById('btn-register-all');
+      btn.disabled = true;
+      btn.innerHTML = `<span class="animate-pulse">Registering all tickets...</span>`;
+
+      let createdCount = 0;
+      for (const d of currentDetectedDefects) {
+        try {
+          const payload = {
+            defect_type: d.category,
+            severity: d.severity,
+            latitude: d.location.latitude,
+            longitude: d.location.longitude,
+            road_name: d.location.road_name,
+            surface_area_m2: d.physical_metrics.surface_area_m2,
+            estimated_depth_m: d.physical_metrics.estimated_depth_m,
+            volume_m3: d.physical_metrics.volume_m3,
+            asphalt_required_kg: d.physical_metrics.asphalt_required_kg,
+            evidence_image_url: d.best_frame_evidence
+          };
+
+          const res = await fetch('/api/v1/incidents/create-from-detection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) createdCount++;
+        } catch (_) {}
+      }
+
+      alert(`Success! Auto-registered ${createdCount} official tickets into municipal system. Contractor email notifications dispatched.`);
+      closePatrolModal();
+      loadCivicData();
     }
 
     async function promoteDefectToTicket(defectJsonStr) {

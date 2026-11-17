@@ -108,13 +108,25 @@ async def process_video_stream(
         start_lng=longitude or 73.8567
     )
 
+    matcher = GeospatialMatcher()
+    summary_seg, summary_contractor = matcher.match_location(latitude or 18.5204, longitude or 73.8567, road_name)
+
+    # Attach contractor and segment info to each defect track
+    for d in finalized_defects:
+        seg, contractor = matcher.match_location(d.location.latitude, d.location.longitude, road_name)
+        d.assigned_contractor = contractor
+        d.road_segment = seg
+
     return VideoProcessingSummary(
         video_filename=video_file.filename,
         total_frames_analyzed=sampled_count,
         video_fps=round(fps, 1),
         duration_seconds=round(duration, 2),
         unique_defects_count=len(finalized_defects),
-        defects=finalized_defects
+        defects=finalized_defects,
+        road_name=road_name,
+        road_segment=summary_seg,
+        assigned_contractor=summary_contractor
     )
 
 
@@ -138,6 +150,8 @@ async def process_single_image(
     h, w = frame.shape[:2]
     detections = detector.detect_frame(frame)
     results = []
+    matcher = GeospatialMatcher()
+    seg, contractor = matcher.match_location(latitude or 18.5204, longitude or 73.8567, road_name)
 
     for idx, det in enumerate(detections):
         box_w = det.x2 - det.x1
@@ -165,7 +179,9 @@ async def process_single_image(
             physical_metrics=metrics,
             best_frame_evidence=f"/storage/evidence/{filename}",
             timestamp_sec=0.0,
-            frame_number=0
+            frame_number=0,
+            assigned_contractor=contractor,
+            road_segment=seg
         ))
 
     return results
