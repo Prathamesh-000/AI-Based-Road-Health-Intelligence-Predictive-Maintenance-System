@@ -4,515 +4,848 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>RoadSentinel AI - Technical Project Poster & Progress Report</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    /* CSS Reset & Font Setup */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    @page {
+      size: A3 landscape;
+      margin: 8mm;
+    }
+
     body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #0b0f19;
+      color: #f1f5f9;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      padding: 16px;
     }
-    .font-mono {
-      font-family: 'JetBrains Mono', monospace;
-    }
+
+    /* Print Controls */
     @media print {
-      body { margin: 0; padding: 0; background: #0b0f19 !important; color: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { padding: 0; background-color: #0b0f19 !important; color: #f1f5f9 !important; }
       .no-print { display: none !important; }
-      @page { size: A3 landscape; margin: 6mm; }
     }
-    .glass-card {
-      background: rgba(15, 23, 42, 0.85);
-      border: 1px solid rgba(51, 65, 85, 0.7);
-      backdrop-filter: blur(12px);
+
+    .no-print-bar {
+      max-width: 1720px;
+      margin: 0 auto 16px auto;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      padding: 10px 18px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
     }
-    .accent-gradient {
-      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 50%, #f59e0b 100%);
+
+    .btn-print {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #020617;
+      font-weight: 800;
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .badge-glow {
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+
+    /* Main Poster Frame */
+    .poster-container {
+      max-width: 1720px;
+      margin: 0 auto;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 20px;
+      padding: 24px 28px;
+      position: relative;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     }
+
+    .accent-top-strip {
+      height: 6px;
+      width: 100%;
+      background: linear-gradient(90deg, #38bdf8 0%, #6366f1 50%, #f59e0b 100%);
+      position: absolute;
+      top: 0;
+      left: 0;
+      border-radius: 20px 20px 0 0;
+    }
+
+    /* Header */
+    .poster-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 20px;
+      margin-bottom: 20px;
+      gap: 24px;
+    }
+
+    .tag-capstone {
+      display: inline-block;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+      font-family: monospace;
+    }
+
+    .tag-status {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 6px;
+    }
+
+    .title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .main-title {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: -1px;
+      color: #ffffff;
+      line-height: 1.1;
+    }
+
+    .version-pill {
+      font-size: 13px;
+      font-weight: 800;
+      background: rgba(245, 158, 11, 0.2);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-family: monospace;
+    }
+
+    .sub-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #38bdf8;
+      margin-top: 4px;
+      letter-spacing: 0.2px;
+    }
+
+    .meta-card {
+      display: flex;
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 14px 20px;
+      gap: 20px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .meta-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .meta-col.bordered {
+      border-right: 1px solid #1e293b;
+      padding-right: 20px;
+    }
+
+    .meta-label { color: #94a3b8; font-size: 11px; font-weight: 500; }
+    .meta-value-author { color: #ffffff; font-size: 16px; font-weight: 800; }
+    .meta-value-roll { color: #f59e0b; font-family: monospace; font-size: 12px; font-weight: 700; }
+    .meta-value-inst { color: #ffffff; font-size: 14px; font-weight: 700; }
+    .meta-value-sub { color: #6366f1; font-size: 11px; font-weight: 600; }
+
+    /* Dashboard: 6 Phases */
+    .dashboard-panel {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+
+    .dash-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .dash-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      display: inline-block;
+    }
+
+    .dash-badge {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      padding: 3px 10px;
+      border-radius: 6px;
+    }
+
+    .phases-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+    }
+
+    .phase-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .phase-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .phase-1 { color: #34d399; }
+    .phase-2 { color: #38bdf8; }
+    .phase-3 { color: #818cf8; }
+    .phase-4 { color: #fbbf24; }
+    .phase-5 { color: #f43f5e; }
+    .phase-6 { color: #2dd4bf; }
+
+    .phase-tag {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 9px;
+    }
+
+    .phase-title {
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .phase-desc {
+      color: #94a3b8;
+      font-size: 10px;
+      line-height: 1.3;
+    }
+
+    .phase-footer {
+      color: #34d399;
+      font-size: 10px;
+      font-weight: 700;
+      font-family: monospace;
+      margin-top: 4px;
+    }
+
+    /* 4 Column Scientific Grid */
+    .grid-columns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .sec-card {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sec-card.highlight {
+      border-color: rgba(245, 158, 11, 0.4);
+      background: #0b1120;
+    }
+
+    .sec-header {
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sec-title-rose { color: #f43f5e; }
+    .sec-title-sky { color: #38bdf8; }
+    .sec-title-indigo { color: #818cf8; }
+    .sec-title-amber { color: #fbbf24; }
+    .sec-title-emerald { color: #34d399; }
+
+    .sec-text {
+      color: #cbd5e1;
+      font-size: 11px;
+      line-height: 1.45;
+      text-align: justify;
+    }
+
+    .item-box {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 11px;
+      color: #cbd5e1;
+      line-height: 1.35;
+    }
+
+    .item-box strong { color: #ffffff; }
+
+    .item-box.danger {
+      border-color: rgba(244, 63, 94, 0.3);
+      background: rgba(244, 63, 94, 0.05);
+    }
+
+    .item-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .mini-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px 10px;
+      text-align: center;
+    }
+
+    .mini-card-title { font-weight: 800; font-size: 12px; }
+    .mini-card-sub { color: #94a3b8; font-size: 10px; }
+
+    /* Pipeline List */
+    .pipe-step {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 7px;
+      padding: 7px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+      font-size: 11px;
+    }
+
+    .pipe-arrow {
+      text-align: center;
+      color: #475569;
+      font-size: 10px;
+      margin: -4px 0;
+    }
+
+    /* Formula Box */
+    .math-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: monospace;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .math-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* Metric Counters */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      text-align: center;
+    }
+
+    .metric-card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 8px 6px;
+    }
+
+    .metric-num {
+      font-size: 22px;
+      font-weight: 900;
+      font-family: monospace;
+      line-height: 1.1;
+    }
+
+    .metric-label {
+      font-size: 10px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* Decision States */
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 800;
+      font-family: monospace;
+    }
+
+    .decision-badge-green {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+      padding: 6px 4px;
+      border-radius: 6px;
+    }
+
+    .decision-badge-red {
+      background: rgba(244, 63, 94, 0.15);
+      border: 1px solid rgba(244, 63, 94, 0.4);
+      color: #fb7185;
+      padding: 6px 4px;
+      border-radius: 6px;
+    }
+
+    .decision-badge-amber {
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+      padding: 6px 4px;
+      border-radius: 6px;
+    }
+
+    /* Tech Badges */
+    .tech-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tech-pill {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      color: #cbd5e1;
+      font-size: 10px;
+      font-family: monospace;
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+
+    /* Footer */
+    .poster-footer {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid #1e293b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    .repo-link { color: #38bdf8; font-family: monospace; text-decoration: none; }
   </style>
 </head>
-<body class="bg-[#0b0f19] text-slate-100 antialiased p-4 lg:p-6 min-h-screen">
+<body>
 
-  <!-- Interactive Control Bar (Hidden when Printing) -->
-  <div class="no-print max-w-[1720px] mx-auto mb-4 flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 border border-slate-800 px-5 py-3 rounded-2xl shadow-xl">
-    <div class="flex items-center space-x-3 text-xs font-semibold">
-      <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono">
-        ROAD-SENTINEL-AI-POSTER-V2.0
-      </span>
-      <span class="text-slate-500">•</span>
-      <span class="text-slate-300">National Institute of Technology Jalandhar — Capstone Project Review</span>
-      <span class="text-slate-500">•</span>
-      <span class="text-emerald-400 flex items-center space-x-1">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-        <span>Phases 1–6 Completed (100% Tests Passed)</span>
-      </span>
+  <!-- Screen Presentation Bar -->
+  <div class="no-print no-print-bar">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span style="color:#fbbf24; font-weight:700; font-family:monospace;">ROAD-SENTINEL-AI-POSTER-V2.0</span>
+      <span style="color:#475569;">•</span>
+      <span style="color:#cbd5e1;">National Institute of Technology Jalandhar — Capstone Project Review</span>
+      <span style="color:#475569;">•</span>
+      <span style="color:#34d399; font-weight:600;">● Phases 1–6 Operational (100% Passed)</span>
     </div>
-    <div class="flex items-center space-x-3">
-      <button onclick="window.print()" class="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-extrabold transition flex items-center space-x-2 shadow-lg shadow-amber-500/20 active:scale-95 cursor-pointer">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+    <div>
+      <button class="btn-print" onclick="window.print()">
         <span>Print Poster / Export High-Res PDF</span>
       </button>
     </div>
   </div>
 
-  <!-- MAIN POSTER CONTAINER (Standard Landscape Grid) -->
-  <div class="max-w-[1720px] mx-auto bg-slate-950 border border-slate-800 rounded-3xl p-6 lg:p-8 shadow-2xl relative overflow-hidden">
-    
-    <!-- Top Gradient Accent Strip -->
-    <div class="h-2 w-full accent-gradient absolute top-0 left-0"></div>
+  <!-- Main Poster Frame -->
+  <div class="poster-container">
+    <div class="accent-top-strip"></div>
 
-    <!-- ================= HEADER SECTION ================= -->
-    <header class="border-b border-slate-800/80 pb-6 mb-6 pt-2 flex flex-col xl:flex-row items-center justify-between gap-6">
-      
-      <!-- Project Identity & Tagline -->
-      <div class="space-y-2 text-center xl:text-left flex-1">
-        <div class="flex flex-wrap items-center justify-center xl:justify-start gap-2.5">
-          <span class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-bold tracking-wider uppercase font-mono">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-            <span>B.Tech Capstone Project • AI & Civic Robotics</span>
-          </span>
-          <span class="inline-flex items-center space-x-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <span>Status: Complete Working Prototype + Live Telemetry</span>
-          </span>
+    <!-- Header -->
+    <header class="poster-header">
+      <div style="flex:1;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <span class="tag-capstone">B.Tech Capstone Project • AI & Civic Robotics</span>
+          <span class="tag-status">Status: Working System + Live Telemetry</span>
         </div>
-        
-        <h1 class="text-4xl lg:text-5xl font-black tracking-tight flex items-center justify-center xl:justify-start space-x-3">
-          <span class="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">RoadSentinel AI</span>
-          <span class="text-xs px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 font-mono font-bold tracking-normal">v2.4 LTS</span>
-        </h1>
-        
-        <p class="text-sm lg:text-base font-semibold text-sky-400/90 max-w-4xl tracking-wide">
+        <div class="title-row">
+          <h1 class="main-title">RoadSentinel AI</h1>
+          <span class="version-pill">v2.4 LTS</span>
+        </div>
+        <div class="sub-title">
           AI-Powered Road Health Intelligence, Spatial Telemetry, Volumetric Pavement Solvers & Closed-Loop Repair Verification Platform
-        </p>
+        </div>
       </div>
 
-      <!-- Institutional & Researcher Metadata -->
-      <div class="grid grid-cols-2 gap-3 bg-slate-900/90 border border-slate-800 p-4 rounded-2xl text-xs shrink-0 shadow-inner">
-        <div class="border-r border-slate-800 pr-4">
-          <div class="text-slate-400 font-medium">Student Lead & Author</div>
-          <div class="text-white font-extrabold text-base tracking-tight">Prathamesh Patil</div>
-          <div class="text-amber-400 font-mono font-bold mt-0.5">Roll No: 24103119</div>
-          <div class="text-slate-400 text-[11px] mt-0.5">B.Tech Computer Science & Eng.</div>
+      <div class="meta-card">
+        <div class="meta-col bordered">
+          <span class="meta-label">Student Lead & Author</span>
+          <span class="meta-value-author">Prathamesh Patil</span>
+          <span class="meta-value-roll">Roll No: 24103119</span>
+          <span class="meta-label">B.Tech Computer Science & Eng.</span>
         </div>
-        <div class="pl-2">
-          <div class="text-slate-400 font-medium">Institution & Department</div>
-          <div class="text-white font-bold text-sm tracking-tight leading-snug">National Institute of Technology Jalandhar</div>
-          <div class="text-indigo-400 font-mono text-[11px] mt-1">NIT Jalandhar • Punjab, India</div>
-          <div class="text-slate-400 text-[11px]">Department of Computer Science</div>
+        <div class="meta-col">
+          <span class="meta-label">Institution & Department</span>
+          <span class="meta-value-inst">National Institute of Technology Jalandhar</span>
+          <span class="meta-value-sub">NIT Jalandhar • Punjab, India</span>
+          <span class="meta-label">Department of Computer Science</span>
         </div>
       </div>
     </header>
 
-    <!-- ================= ROW 1: WORK PROGRESS & PHASE COMPLETION DASHBOARD ================= -->
-    <section class="mb-6">
-      <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-800">
-        <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-4 pb-3 border-b border-slate-800">
-          <div>
-            <h2 class="text-base font-extrabold uppercase tracking-wider text-slate-200 flex items-center space-x-2">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>Project Implementation Progress: 100% All 6 Phases Passed & Verified</span>
-            </h2>
-            <p class="text-xs text-slate-400 mt-0.5">End-to-end integration verified across Automated Perception, Geospatial Dispatch, Contractor SLAs, AI Verification & Public GIS</p>
-          </div>
-          <div class="flex items-center space-x-2 text-xs font-mono">
-            <span class="px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 font-bold">
-              Test Coverage: 6/6 Suites Passed (100%)
-            </span>
-          </div>
+    <!-- Phase Implementation Dashboard -->
+    <section class="dashboard-panel">
+      <div class="dash-header">
+        <div class="dash-title">
+          <span class="status-dot"></span>
+          <span>Project Implementation Progress: 100% All 6 Phases Passed & Verified</span>
         </div>
+        <span class="dash-badge">Master Test Suite: 6/6 Suites Passed (100%)</span>
+      </div>
 
-        <!-- 6 Phase Progress Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
-          
-          <!-- Phase 1 -->
-          <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl space-y-1.5 hover:border-emerald-500/50 transition">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-emerald-400 font-mono">PHASE 1</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">100%</span>
-            </div>
-            <div class="font-extrabold text-slate-200 text-xs">Perception & Tracking</div>
-            <p class="text-[11px] text-slate-400 leading-snug">YOLOv8 + ByteTrack MOT. Dual-mode asphalt & mud water-pothole solver.</p>
-            <div class="text-[10px] text-emerald-400 font-mono font-semibold">✅ Verified</div>
-          </div>
-
-          <!-- Phase 2 -->
-          <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl space-y-1.5 hover:border-emerald-500/50 transition">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-sky-400 font-mono">PHASE 2</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">100%</span>
-            </div>
-            <div class="font-extrabold text-slate-200 text-xs">Spatial & ASTM PCI</div>
-            <p class="text-[11px] text-slate-400 leading-snug">Geospatial corridor matching, dynamic SLA calc & ASTM D6433 deducts.</p>
-            <div class="text-[10px] text-emerald-400 font-mono font-semibold">✅ Verified</div>
-          </div>
-
-          <!-- Phase 3 -->
-          <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl space-y-1.5 hover:border-emerald-500/50 transition">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-indigo-400 font-mono">PHASE 3</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">100%</span>
-            </div>
-            <div class="font-extrabold text-slate-200 text-xs">Automated Dispatch</div>
-            <p class="text-[11px] text-slate-400 leading-snug">Zero-spam contractor dispatch, HTML mailer & anti-burst deduplication.</p>
-            <div class="text-[10px] text-emerald-400 font-mono font-semibold">✅ Verified</div>
-          </div>
-
-          <!-- Phase 4 -->
-          <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl space-y-1.5 hover:border-emerald-500/50 transition">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-amber-400 font-mono">PHASE 4</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">100%</span>
-            </div>
-            <div class="font-extrabold text-slate-200 text-xs">Contractor Portal</div>
-            <p class="text-[11px] text-slate-400 leading-snug">Work queue, EXIF GPS geofence validation & repair photo uploads.</p>
-            <div class="text-[10px] text-emerald-400 font-mono font-semibold">✅ Verified</div>
-          </div>
-
-          <!-- Phase 5 -->
-          <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl space-y-1.5 hover:border-emerald-500/50 transition">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-rose-400 font-mono">PHASE 5</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">100%</span>
-            </div>
-            <div class="font-extrabold text-slate-200 text-xs">AI Verification Engine</div>
-            <p class="text-[11px] text-slate-400 leading-snug">Homography perspective warp, pHash anti-fraud & bitumen texture checks.</p>
-            <div class="text-[10px] text-emerald-400 font-mono font-semibold">✅ Verified</div>
-          </div>
-
-          <!-- Phase 6 -->
-          <div class="bg-slate-900/90 border border-slate-800 p-3.5 rounded-xl space-y-1.5 hover:border-emerald-500/50 transition">
-            <div class="flex items-center justify-between">
-              <span class="font-bold text-teal-400 font-mono">PHASE 6</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">100%</span>
-            </div>
-            <div class="font-extrabold text-slate-200 text-xs">Public GIS Portal</div>
-            <p class="text-[11px] text-slate-400 leading-snug">Live Road Health Index (RHI), GeoJSON hazards & Before-After audit cards.</p>
-            <div class="text-[10px] text-emerald-400 font-mono font-semibold">✅ Verified</div>
-          </div>
-
+      <div class="phases-grid">
+        <div class="phase-card">
+          <div class="phase-header"><span class="phase-1">PHASE 1</span><span class="phase-tag">100%</span></div>
+          <div class="phase-title">Perception & MOT</div>
+          <div class="phase-desc">YOLOv8 + ByteTrack. Dual-mode asphalt & mud water-pothole solver.</div>
+          <div class="phase-footer">✅ VERIFIED</div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-header"><span class="phase-2">PHASE 2</span><span class="phase-tag">100%</span></div>
+          <div class="phase-title">Spatial & ASTM PCI</div>
+          <div class="phase-desc">Geospatial corridor matching, dynamic SLA calc & ASTM D6433 deducts.</div>
+          <div class="phase-footer">✅ VERIFIED</div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-header"><span class="phase-3">PHASE 3</span><span class="phase-tag">100%</span></div>
+          <div class="phase-title">Automated Dispatch</div>
+          <div class="phase-desc">Zero-spam contractor dispatch, HTML mailer & anti-burst deduplication.</div>
+          <div class="phase-footer">✅ VERIFIED</div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-header"><span class="phase-4">PHASE 4</span><span class="phase-tag">100%</span></div>
+          <div class="phase-title">Contractor Portal</div>
+          <div class="phase-desc">Work queue, EXIF GPS geofence validation & repair photo uploads.</div>
+          <div class="phase-footer">✅ VERIFIED</div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-header"><span class="phase-5">PHASE 5</span><span class="phase-tag">100%</span></div>
+          <div class="phase-title">AI Verification Engine</div>
+          <div class="phase-desc">Homography perspective warp, pHash anti-fraud & bitumen texture checks.</div>
+          <div class="phase-footer">✅ VERIFIED</div>
+        </div>
+        <div class="phase-card">
+          <div class="phase-header"><span class="phase-6">PHASE 6</span><span class="phase-tag">100%</span></div>
+          <div class="phase-title">Public GIS Portal</div>
+          <div class="phase-desc">Live Road Health Index (RHI), GeoJSON hazards & Before-After audit cards.</div>
+          <div class="phase-footer">✅ VERIFIED</div>
         </div>
       </div>
     </section>
 
-    <!-- ================= 4-COLUMN MAIN TECHNICAL CONTENT ================= -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+    <!-- 4-Column Technical Content -->
+    <div class="grid-columns">
 
-      <!-- ================= COLUMN 1: PROBLEM, SOLUTION & KEY FEATURES ================= -->
-      <div class="space-y-4 flex flex-col justify-between">
-        
-        <!-- 1. The Municipal Infrastructure Crisis -->
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2.5">
-          <div class="flex items-center space-x-2 text-rose-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-            <span>1. Problem Statement & Bottlenecks</span>
+      <!-- COLUMN 1: Problem & Solution -->
+      <div class="column">
+        <div class="sec-card">
+          <div class="sec-header sec-title-rose">
+            <span>● 1. Problem Statement & Bottlenecks</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed text-justify">
-            Traditional municipal road maintenance relies on sluggish manual reporting and subjective contractor auditing. This causes critical breakdowns:
-          </p>
-          <div class="space-y-2 text-[11px]">
-            <div class="p-2 rounded-xl bg-slate-950/70 border border-rose-500/20 flex items-start space-x-2">
-              <span class="text-rose-400 font-bold">❌</span>
-              <div>
-                <strong class="text-slate-200 block">Mass Frame Duplication:</strong>
-                Driving past a defect at 30 FPS spawns dozens of duplicate tickets, overwhelming civic engineers.
-              </div>
+          <div class="sec-text">
+            Traditional municipal road maintenance relies on passive reporting and subjective manual auditing. This creates severe failures:
+          </div>
+          <div class="item-box danger">
+            <strong>❌ Mass Frame Duplication:</strong> Driving past one pothole at 30 FPS generates dozens of redundant tickets.
+          </div>
+          <div class="item-box danger">
+            <strong>❌ No Material Sizing:</strong> Crews dispatched with arbitrary asphalt loads without scientific 3D volumetric math.
+          </div>
+          <div class="item-box danger">
+            <strong>❌ Contractor Billing Fraud:</strong> Unverified repair claims using recycled stock photos or sub-standard patching.
+          </div>
+        </div>
+
+        <div class="sec-card">
+          <div class="sec-header sec-title-sky">
+            <span>● 2. The RoadSentinel Paradigm</span>
+          </div>
+          <div class="sec-text">
+            An autonomous, closed-loop cyber-physical system connecting video perception directly to contractor dispatch, anti-fraud AI verification, and citizen transparency.
+          </div>
+          <div class="item-grid-2">
+            <div class="mini-card">
+              <div class="mini-card-title" style="color:#fbbf24;">📷 Detect</div>
+              <div class="mini-card-sub">Dual-Mode CV</div>
             </div>
-            <div class="p-2 rounded-xl bg-slate-950/70 border border-rose-500/20 flex items-start space-x-2">
-              <span class="text-rose-400 font-bold">❌</span>
-              <div>
-                <strong class="text-slate-200 block">No Accurate Material Sizing:</strong>
-                Crews dispatch with arbitrary asphalt loads without scientific 3D volumetric estimates ($m^3$, $kg$).
-              </div>
+            <div class="mini-card">
+              <div class="mini-card-title" style="color:#818cf8;">📐 Quantify</div>
+              <div class="mini-card-sub">Asphalt Tonnage</div>
             </div>
-            <div class="p-2 rounded-xl bg-slate-950/70 border border-rose-500/20 flex items-start space-x-2">
-              <span class="text-rose-400 font-bold">❌</span>
-              <div>
-                <strong class="text-rose-300 block">Contractor Billing Fraud:</strong>
-                Repairs are claimed using recycled stock photos, wrong locations, or sub-standard patch materials.
-              </div>
+            <div class="mini-card">
+              <div class="mini-card-title" style="color:#38bdf8;">📍 Assign</div>
+              <div class="mini-card-sub">GIS Boundary</div>
+            </div>
+            <div class="mini-card">
+              <div class="mini-card-title" style="color:#34d399;">🔍 Verify</div>
+              <div class="mini-card-sub">Homography AI</div>
             </div>
           </div>
         </div>
 
-        <!-- 2. The RoadSentinel AI Solution -->
-        <div class="bg-slate-900/80 border border-sky-500/30 p-4 rounded-2xl space-y-2.5">
-          <div class="flex items-center space-x-2 text-sky-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
-            <span>2. The RoadSentinel Paradigm</span>
+        <div class="sec-card">
+          <div class="sec-header sec-title-amber">
+            <span>● 3. Core Platform Features</span>
           </div>
-          <p class="text-xs text-slate-300 leading-relaxed">
-            A fully autonomous, closed-loop cyber-physical system connecting video perception directly to contractor dispatch, anti-fraud AI verification, and citizen transparency.
-          </p>
-          
-          <div class="grid grid-cols-2 gap-2 text-[11px] text-center font-semibold pt-1">
-            <div class="p-2 rounded-xl bg-slate-950/90 border border-slate-800">
-              <div class="text-amber-400 font-bold text-xs">📷 Detect</div>
-              <span class="text-slate-400 text-[10px]">Dual-Mode CV</span>
-            </div>
-            <div class="p-2 rounded-xl bg-slate-950/90 border border-slate-800">
-              <div class="text-indigo-400 font-bold text-xs">📐 Quantify</div>
-              <span class="text-slate-400 text-[10px]">Asphalt Tonnage</span>
-            </div>
-            <div class="p-2 rounded-xl bg-slate-950/90 border border-slate-800">
-              <div class="text-sky-400 font-bold text-xs">📍 Assign</div>
-              <span class="text-slate-400 text-[10px]">GIS Geo-Boundary</span>
-            </div>
-            <div class="p-2 rounded-xl bg-slate-950/90 border border-slate-800">
-              <div class="text-emerald-400 font-bold text-xs">🔍 Verify</div>
-              <span class="text-slate-400 text-[10px]">Homography AI</span>
-            </div>
+          <div class="sec-text">
+            • <strong>Dual-Mode CV:</strong> Asphalt dry holes & rural water-filled potholes.<br/>
+            • <strong>Kalman ByteTrack:</strong> Real-time trajectory deduplication.<br/>
+            • <strong>ASTM D6433 PCI:</strong> Standardized deduct score computation.<br/>
+            • <strong>Anti-Fraud Triad:</strong> EXIF geofence, pHash & ORB keypoints.<br/>
+            • <strong>Public Transparency:</strong> Live GeoJSON Waze/Google Maps feed.
           </div>
         </div>
-
-        <!-- 3. Key Technical Features -->
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2 text-xs">
-          <div class="flex items-center space-x-2 text-amber-400 font-bold uppercase tracking-wider text-xs">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-            <span>3. Core Platform Features</span>
-          </div>
-          <ul class="text-[11px] text-slate-300 space-y-1.5 list-disc list-inside">
-            <li><strong>Dual-Mode CV:</strong> Asphalt dry holes & rural water-filled potholes.</li>
-            <li><strong>Kalman ByteTrack:</strong> Real-time trajectory deduplication.</li>
-            <li><strong>ASTM D6433 PCI:</strong> Standardized deduct score computation.</li>
-            <li><strong>Anti-Fraud Triad:</strong> EXIF geofence, pHash & ORB keypoints.</li>
-            <li><strong>Public Transparency:</strong> Live GeoJSON Waze/Google Maps feed.</li>
-          </ul>
-        </div>
-
       </div>
 
-      <!-- ================= COLUMN 2: ARCHITECTURE & CV DUAL-MODE PERCEPTION ================= -->
-      <div class="space-y-4 flex flex-col justify-between">
-        
-        <!-- 4. End-to-End System Pipeline -->
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-3">
-          <div class="flex items-center space-x-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-indigo-400"></span>
-            <span>4. End-to-End Pipeline Architecture</span>
+      <!-- COLUMN 2: Architecture & CV Dual-Mode -->
+      <div class="column">
+        <div class="sec-card">
+          <div class="sec-header sec-title-indigo">
+            <span>● 4. End-to-End Pipeline</span>
           </div>
-
-          <div class="space-y-1.5 text-xs font-mono">
-            <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span class="text-slate-200">1. Video & GPX Ingestion</span>
-              <span class="text-sky-400 text-[10px]">ISO-6709 + GPX</span>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div class="pipe-step"><span>1. Video & GPX Ingestion</span><span style="color:#38bdf8;">ISO-6709 + GPX</span></div>
+            <div class="pipe-arrow">▼</div>
+            <div class="pipe-step"><span>2. Dual-Mode Perception</span><span style="color:#fbbf24;">YOLOv8 + Water Solver</span></div>
+            <div class="pipe-arrow">▼</div>
+            <div class="pipe-step"><span>3. Spatial Dispatch & SLA</span><span style="color:#818cf8;">Corridor Boundary</span></div>
+            <div class="pipe-arrow">▼</div>
+            <div class="pipe-step"><span>4. Contractor Remediation</span><span style="color:#34d399;">EXIF Guard + Upload</span></div>
+            <div class="pipe-arrow">▼</div>
+            <div class="pipe-step" style="border-color:rgba(245,158,11,0.5); background:rgba(245,158,11,0.08);">
+              <span style="color:#fbbf24; font-weight:700;">5. Closed-Loop AI Verify</span><span style="color:#fbbf24;">ORB Warp + Texture</span>
             </div>
-            <div class="text-center text-slate-600 font-bold text-xs">▼</div>
-            <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span class="text-slate-200">2. Dual-Mode Perception</span>
-              <span class="text-amber-400 text-[10px]">YOLOv8 + Water Solver</span>
-            </div>
-            <div class="text-center text-slate-600 font-bold text-xs">▼</div>
-            <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span class="text-slate-200">3. Spatial Dispatch & SLA</span>
-              <span class="text-indigo-400 text-[10px]">GeoJSON Corridor Match</span>
-            </div>
-            <div class="text-center text-slate-600 font-bold text-xs">▼</div>
-            <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span class="text-slate-200">4. Contractor Remediation</span>
-              <span class="text-emerald-400 text-[10px]">EXIF Guard + Ingestion</span>
-            </div>
-            <div class="text-center text-slate-600 font-bold text-xs">▼</div>
-            <div class="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between">
-              <span class="text-amber-300 font-bold">5. Closed-Loop AI Verification</span>
-              <span class="text-amber-400 text-[10px]">ORB Warping + Texture</span>
-            </div>
-            <div class="text-center text-slate-600 font-bold text-xs">▼</div>
-            <div class="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span class="text-slate-200">6. Civic Transparency Portal</span>
-              <span class="text-teal-400 text-[10px]">ASTM D6433 RHI Index</span>
-            </div>
+            <div class="pipe-arrow">▼</div>
+            <div class="pipe-step"><span>6. Civic Transparency</span><span style="color:#2dd4bf;">ASTM D6433 RHI</span></div>
           </div>
         </div>
 
-        <!-- 5. Advanced Dual-Mode Perception -->
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
-          <div class="flex items-center space-x-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-            <span>5. Dual-Mode Computer Vision Engine</span>
+        <div class="sec-card">
+          <div class="sec-header sec-title-amber">
+            <span>● 5. Dual-Mode Computer Vision</span>
           </div>
-          <p class="text-[11px] text-slate-300 text-justify">
-            Standard detectors fail in Indian road conditions where unpaved rural roads turn into water-filled pools. RoadSentinel AI dynamically switches detection modes:
-          </p>
-          
-          <div class="space-y-1.5 text-[11px]">
-            <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
-              <strong class="text-amber-300 block text-xs">Mode A: Dark Depressions (Asphalt)</strong>
-              <span>Applies Otsu inverse thresholding on drivable trapezoid corridors to locate cavities darker than pavement.</span>
-            </div>
-            <div class="p-2 rounded-xl bg-slate-950 border border-slate-800">
-              <strong class="text-sky-300 block text-xs">Mode B: Water Pool Reflection (Dirt/Mud)</strong>
-              <span>Detects sky-specular reflectance on brown mud using adaptive brightness $(\mu_{road} + 1.2\sigma_{road})$.</span>
-            </div>
+          <div class="sec-text">
+            Standard detectors fail on Indian roads where unpaved rural tracks hold standing water. RoadSentinel AI dynamically switches detection:
           </div>
-
-          <!-- Vehicle False-Positive Suppression -->
-          <div class="p-2.5 rounded-xl bg-slate-950/90 border border-indigo-500/30 text-[10px] text-slate-300 space-y-1">
-            <span class="text-indigo-400 font-bold uppercase block">Vehicle & Bike Rejection Shield</span>
-            <span>Ultra-sensitive YOLO pass ($conf=0.08$) masks cars, bikes, and riders. Combined with HSV Saturation gating ($Sat > 38\%$), zero vehicles or tires are ever tagged as potholes.</span>
+          <div class="item-box">
+            <strong style="color:#fbbf24;">Mode A: Dark Depressions (Asphalt)</strong><br/>
+            Applies Otsu thresholding on drivable trapezoid corridors to locate cavities darker than road pavement.
+          </div>
+          <div class="item-box">
+            <strong style="color:#38bdf8;">Mode B: Water Pool Reflection (Mud Roads)</strong><br/>
+            Detects sky-specular reflectance on brown mud using adaptive brightness: &mu;<sub>road</sub> + 1.2&sigma;<sub>road</sub>.
+          </div>
+          <div class="item-box" style="border-color:rgba(99,102,241,0.4);">
+            <strong style="color:#818cf8;">Vehicle & Bike Rejection Shield:</strong><br/>
+            Ultra-sensitive YOLO pass (conf=0.08) masks vehicles, bikes, and riders. Combined with HSV Saturation gating (Sat &gt; 38%), zero vehicles or tires are ever tagged as potholes.
           </div>
         </div>
-
       </div>
 
-      <!-- ================= COLUMN 3: AI VERIFICATION & VOLUMETRIC MATH ================= -->
-      <div class="space-y-4 flex flex-col justify-between">
-        
-        <!-- 6. Automated Closed-Loop AI Verification -->
-        <div class="bg-slate-900/80 border border-amber-500/40 p-4 rounded-2xl space-y-3 relative">
-          <div class="absolute -top-2.5 right-3 px-2 py-0.5 bg-amber-500 text-slate-950 text-[10px] font-black uppercase rounded shadow">
-            Core Novelty
+      <!-- COLUMN 3: AI Verification & Math -->
+      <div class="column">
+        <div class="sec-card highlight">
+          <div class="sec-header sec-title-amber">
+            <span>● 6. Closed-Loop AI Verification</span>
           </div>
-
-          <div class="flex items-center space-x-2 text-amber-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-            <span>6. Closed-Loop AI Verification</span>
-          </div>
-
-          <p class="text-[11px] text-slate-300 text-justify">
+          <div class="sec-text">
             Validates contractor repair claims using a deterministic 3-tier computer vision pipeline without subjective human bias:
-          </p>
-
-          <div class="space-y-2 text-xs">
-            <!-- Stage 1 -->
-            <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-              <span class="font-bold text-amber-400 block text-xs">Stage 1: Anti-Fraud Guard</span>
-              <p class="text-slate-400 text-[11px] mt-0.5">• <strong>Haversine EXIF Geofence:</strong> Rejects submissions >50m from incident.<br/>• <strong>pHash Hamming Distance:</strong> Detects and flags duplicate stock photos.</p>
-            </div>
-
-            <!-- Stage 2 -->
-            <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-              <span class="font-bold text-sky-400 block text-xs">Stage 2: Planar Homography Alignment</span>
-              <p class="text-slate-400 text-[11px] mt-0.5">• <strong>ORB + RANSAC:</strong> Computes $3 \times 3$ transformation matrix $H$ to geometrically warp contractor after-photo into exact viewpoint of defect.</p>
-            </div>
-
-            <!-- Stage 3 -->
-            <div class="p-2.5 bg-slate-950 rounded-xl border border-slate-800">
-              <span class="font-bold text-emerald-400 block text-xs">Stage 3: Dual-Head Verification</span>
-              <p class="text-slate-400 text-[11px] mt-0.5">• <strong>Residual Distress Check:</strong> Ensures 0 remaining potholes.<br/>• <strong>Bitumen Texture Pass:</strong> Verifies fresh compacted hot-mix asphalt.</p>
-            </div>
           </div>
-
-          <!-- Outcome Badges -->
-          <div class="grid grid-cols-3 gap-1.5 text-center text-[10px] font-bold pt-1">
-            <div class="p-1.5 bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 rounded-lg">VERIFIED</div>
-            <div class="p-1.5 bg-rose-500/15 border border-rose-500/40 text-rose-400 rounded-lg">REWORK</div>
-            <div class="p-1.5 bg-amber-500/15 border border-amber-500/40 text-amber-400 rounded-lg">AUDIT PENDING</div>
+          <div class="item-box">
+            <strong style="color:#fbbf24;">Stage 1: Anti-Fraud Guard</strong><br/>
+            • <strong>Haversine Geofence:</strong> Rejects submissions &gt;50m from site.<br/>
+            • <strong>pHash Hamming Distance:</strong> Flags recycled stock photos.
+          </div>
+          <div class="item-box">
+            <strong style="color:#38bdf8;">Stage 2: Planar Homography Alignment</strong><br/>
+            • <strong>ORB + RANSAC:</strong> Computes 3&times;3 matrix <em>H</em> to geometrically warp after-photo into exact perspective of defect.
+          </div>
+          <div class="item-box">
+            <strong style="color:#34d399;">Stage 3: Dual-Head Verification</strong><br/>
+            • <strong>Residual Distress Check:</strong> Ensures 0 remaining potholes.<br/>
+            • <strong>Bitumen Texture Pass:</strong> Verifies fresh compacted hot-mix.
+          </div>
+          <div class="decision-grid">
+            <div class="decision-badge-green">VERIFIED</div>
+            <div class="decision-badge-red">REWORK</div>
+            <div class="decision-badge-amber">PENDING</div>
           </div>
         </div>
 
-        <!-- 7. Volumetric Asphalt Quantification -->
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
-          <div class="flex items-center space-x-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>7. Physical Volumetrics & Material Solver</span>
+        <div class="sec-card">
+          <div class="sec-header sec-title-emerald">
+            <span>● 7. Volumetric Asphalt Solver</span>
           </div>
-          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 font-mono text-[11px] text-slate-200 space-y-1">
-            <div class="flex justify-between"><span>Area (m²)</span> <span class="text-sky-400">=(w × GSD) × (h × GSD)</span></div>
-            <div class="flex justify-between"><span>Volume (m³)</span> <span class="text-indigo-400">=Area × Estimated Depth (m)</span></div>
-            <div class="flex justify-between border-t border-slate-800 pt-1 text-emerald-400 font-bold"><span>Hot-Mix Asphalt</span> <span>=Volume × 2,400 kg/m³</span></div>
+          <div class="math-box">
+            <div class="math-row"><span>Area (m&sup2;)</span><span style="color:#38bdf8;">=(w &times; GSD) &times; (h &times; GSD)</span></div>
+            <div class="math-row"><span>Volume (m&sup3;)</span><span style="color:#818cf8;">=Area &times; Depth (m)</span></div>
+            <div class="math-row" style="border-top:1px solid #1e293b; padding-top:4px; color:#34d399; font-weight:700;">
+              <span>Hot-Mix Asphalt</span><span>=Volume &times; 2,400 kg/m&sup3;</span>
+            </div>
           </div>
-          <p class="text-[10px] text-slate-400">Enables automated bill-of-materials verification against contractor invoice claims.</p>
+          <div class="sec-text" style="font-size:10px;">
+            Enables automated bill-of-materials verification against contractor invoice claims.
+          </div>
         </div>
-
       </div>
 
-      <!-- ================= COLUMN 4: PERFORMANCE, METRICS & CURRENT STATUS ================= -->
-      <div class="space-y-4 flex flex-col justify-between">
-        
-        <!-- 8. Performance Benchmark Results -->
-        <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-3">
-          <div class="flex items-center space-x-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>8. Empirical Performance Metrics</span>
+      <!-- COLUMN 4: Metrics, Status & Stack -->
+      <div class="column">
+        <div class="sec-card">
+          <div class="sec-header sec-title-emerald">
+            <span>● 8. Empirical Performance Metrics</span>
           </div>
-
-          <div class="grid grid-cols-2 gap-2 text-center">
-            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-              <div class="text-xl font-black text-amber-400 font-mono">92.4%</div>
-              <div class="text-[10px] text-slate-400 uppercase font-semibold">Pothole Recall</div>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-num" style="color:#fbbf24;">92.4%</div>
+              <div class="metric-label">Pothole Recall</div>
             </div>
-            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-              <div class="text-xl font-black text-indigo-400 font-mono">96.8%</div>
-              <div class="text-[10px] text-slate-400 uppercase font-semibold">Vehicle Suppression</div>
+            <div class="metric-card">
+              <div class="metric-num" style="color:#818cf8;">96.8%</div>
+              <div class="metric-label">Vehicle Suppression</div>
             </div>
-            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-              <div class="text-xl font-black text-sky-400 font-mono">1,400+</div>
-              <div class="text-[10px] text-slate-400 uppercase font-semibold">ORB Inlier Points</div>
+            <div class="metric-card">
+              <div class="metric-num" style="color:#38bdf8;">1,400+</div>
+              <div class="metric-label">ORB Inliers</div>
             </div>
-            <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-              <div class="text-xl font-black text-emerald-400 font-mono">&lt;40 ms</div>
-              <div class="text-[10px] text-slate-400 uppercase font-semibold">Inference Latency</div>
+            <div class="metric-card">
+              <div class="metric-num" style="color:#34d399;">&lt;40 ms</div>
+              <div class="metric-label">Inference Latency</div>
             </div>
           </div>
         </div>
 
-        <!-- 9. Current Status & How It Is Going On -->
-        <div class="bg-slate-900/80 border border-emerald-500/30 p-4 rounded-2xl space-y-2">
-          <div class="flex items-center space-x-2 text-emerald-400 font-bold text-xs uppercase tracking-wider">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>9. Current Status & Live Operations</span>
+        <div class="sec-card" style="border-color:rgba(16,185,129,0.4);">
+          <div class="sec-header sec-title-emerald">
+            <span>● 9. Current Status & Live Operations</span>
           </div>
-          
-          <div class="space-y-2 text-[11px]">
-            <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-0.5">
-              <div class="flex items-center justify-between text-xs font-bold text-slate-200">
-                <span>Completed & Operational</span>
-                <span class="text-emerald-400 font-mono">100%</span>
-              </div>
-              <p class="text-slate-400 text-[10px]">All 6 architectural tiers built, tested, and fully functional.</p>
+          <div class="item-box">
+            <div style="display:flex; justify-content:space-between; font-weight:700;">
+              <span>Completed & Operational</span>
+              <span style="color:#34d399; font-family:monospace;">100%</span>
             </div>
-
-            <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-0.5">
-              <div class="flex items-center justify-between text-xs font-bold text-slate-200">
-                <span>Active Field Testing</span>
-                <span class="text-amber-400 font-mono">In Progress</span>
-              </div>
-              <p class="text-slate-400 text-[10px]">Testing real HD dashcam footage across urban highways and unpaved water-logged rural tracks.</p>
+            <div style="color:#94a3b8; font-size:10px;">All 6 architectural tiers built, tested, and fully functional.</div>
+          </div>
+          <div class="item-box">
+            <div style="display:flex; justify-content:space-between; font-weight:700;">
+              <span>Active Field Testing</span>
+              <span style="color:#fbbf24; font-family:monospace;">In Progress</span>
             </div>
-
-            <div class="p-2 rounded-xl bg-slate-950 border border-slate-800 space-y-0.5">
-              <div class="flex items-center justify-between text-xs font-bold text-slate-200">
-                <span>GIS Telemetry Integration</span>
-                <span class="text-sky-400 font-mono">Live</span>
-              </div>
-              <p class="text-slate-400 text-[10px]">OpenStreetMap GIS heatmap running with ISO-6709 embedded GPS + 29 synchronized GPX route points.</p>
+            <div style="color:#94a3b8; font-size:10px;">Testing real HD dashcam footage across urban highways and unpaved water-logged rural tracks.</div>
+          </div>
+          <div class="item-box">
+            <div style="display:flex; justify-content:space-between; font-weight:700;">
+              <span>GIS Telemetry Integration</span>
+              <span style="color:#38bdf8; font-family:monospace;">Live</span>
             </div>
+            <div style="color:#94a3b8; font-size:10px;">OpenStreetMap GIS heatmap running with ISO-6709 embedded GPS + 29 synchronized GPX route points.</div>
           </div>
         </div>
 
-        <!-- 10. Technology Stack Matrix -->
-        <div class="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl space-y-2">
-          <span class="text-xs font-bold text-slate-300 uppercase tracking-wider block">Production Technology Stack</span>
-          <div class="flex flex-wrap gap-1.5 text-[10px] font-mono">
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">Python 3.10+</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">FastAPI</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">PyTorch YOLOv8</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">OpenCV 4.x</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">ByteTrack MOT</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">Leaflet.js GIS</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">PostGIS / GeoJSON</span>
-            <span class="px-2 py-0.5 rounded-md bg-slate-950 text-slate-300 border border-slate-800">imagehash pHash</span>
+        <div class="sec-card">
+          <div class="sec-header" style="color:#cbd5e1;">
+            <span>● 10. Production Tech Stack</span>
+          </div>
+          <div class="tech-wrap">
+            <span class="tech-pill">Python 3.10+</span>
+            <span class="tech-pill">FastAPI</span>
+            <span class="tech-pill">PyTorch YOLOv8</span>
+            <span class="tech-pill">OpenCV 4.x</span>
+            <span class="tech-pill">ByteTrack MOT</span>
+            <span class="tech-pill">Leaflet.js GIS</span>
+            <span class="tech-pill">PostGIS / GeoJSON</span>
+            <span class="tech-pill">imagehash pHash</span>
           </div>
         </div>
-
       </div>
 
     </div>
 
-    <!-- ================= FOOTER / CITATION BAR ================= -->
-    <footer class="mt-6 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between text-xs text-slate-400 gap-3">
-      <div class="flex items-center space-x-2">
-        <span class="font-bold text-slate-200">National Institute of Technology Jalandhar</span>
-        <span>•</span>
-        <span>Department of Computer Science & Engineering</span>
-        <span>•</span>
-        <span class="text-amber-400 font-mono">Project Roll: 24103119</span>
+    <!-- Footer -->
+    <footer class="poster-footer">
+      <div>
+        <strong style="color:#ffffff;">National Institute of Technology Jalandhar</strong> • Department of Computer Science & Engineering • <span style="color:#fbbf24; font-family:monospace;">Roll: 24103119</span>
       </div>
-      <div class="flex items-center space-x-2 font-mono text-[11px] text-slate-500">
-        <span>Repository:</span>
-        <span class="text-sky-400">github.com/Prathamesh-000/AI-Based-Road-Health-Intelligence-Predictive-Maintenance-System</span>
+      <div>
+        Repository: <a class="repo-link" href="https://github.com/Prathamesh-000/AI-Based-Road-Health-Intelligence-Predictive-Maintenance-System" target="_blank">github.com/Prathamesh-000/AI-Based-Road-Health-Intelligence-Predictive-Maintenance-System</a>
       </div>
     </footer>
 

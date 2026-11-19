@@ -91,6 +91,18 @@ async def get_poster_html():
     return HTMLResponse("<h1>Project Poster</h1><p>Poster document not found.</p>", headers=NO_CACHE_HEADERS)
 
 
+@app.get("/poster/pdf", tags=["Documentation"])
+async def get_poster_pdf():
+    pdf_file = BASE_DIR.parent / "docs" / "RoadSentinel_AI_Project_Poster.pdf"
+    if pdf_file.exists():
+        return FileResponse(
+            path=str(pdf_file),
+            filename="RoadSentinel_AI_Project_Poster.pdf",
+            media_type="application/pdf"
+        )
+    return HTMLResponse("<h1>Poster PDF not found</h1>", status_code=404)
+
+
 @app.get("/", tags=["System"])
 async def root():
     return {
