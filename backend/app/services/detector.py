@@ -23,8 +23,10 @@ COCO_VEHICLE_PERSON_CLASSES = {0, 1, 2, 3, 5, 7, 8, 9, 11, 13}
 class RoadPerceptionEngine:
     """
     High-Precision AI Pavement Distress Perception Engine.
-    Excludes vehicles, motorcycles, bikes, trucks, cars, and pedestrians,
-    isolating genuine asphalt potholes and pavement cracks on the drivable road surface.
+    Supports dual-mode detection:
+    - Mode A: Dark depression detection  (dry potholes on light asphalt)
+    - Mode B: Bright water-pool detection (water-filled potholes on dark dirt/mud roads)
+    Excludes vehicles, motorcycles, bikes, trucks, cars, and pedestrians.
     """
     def __init__(self, model_path: Optional[str] = None):
         self.model = None
@@ -46,13 +48,28 @@ class RoadPerceptionEngine:
                     except Exception as e:
                         print(f"[RoadPerceptionEngine] YOLO load warning for {p}: {e}")
 
+    def _classify_scene(self, frame: np.ndarray, road_mask: np.ndarray) -> str:
+        """
+        Determine whether the road is asphalt/concrete (light surface)
+        or dirt/mud/gravel (dark surface) to pick the right detection mode.
+        Returns 'dark_road' (needs bright pothole detection) or 'light_road' (needs dark pothole detection).
+        """
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        road_pixels = gray[road_mask > 0]
+        if len(road_pixels) == 0:
+            return "light_road"
+        mean_brightness = float(np.mean(road_pixels))
+        # Dark brown/mud roads typically have mean brightness < 95
+        # Light asphalt roads typically have mean brightness >= 90
+        return "dark_road" if mean_brightness < 95 else "light_road"
+
     def detect_frame(self, frame: np.ndarray) -> List[BoundingBox]:
         h, w = frame.shape[:2]
         boxes: List[BoundingBox] = []
         vehicle_exclusion_zones = []
 
         # 1. Deep Learning Vehicle & Person Localization Pass
-        # We run at an ultra-sensitive conf=0.08 to aggressively detect and eliminate ALL vehicles/bikes/trucks/cars
+        # Run at ultra-sensitive conf=0.08 to aggressively eliminate ALL vehicles/bikes/trucks/cars
         if self.model:
             try:
                 results = self.model(frame, verbose=False, conf=0.08)
@@ -106,44 +123,99 @@ class RoadPerceptionEngine:
                 print(f"[RoadPerceptionEngine] Inference warning: {e}")
 
         # 2. Road Drivable Surface Geometric Extraction
-        # Potholes can physically only exist on the drivable road asphalt corridor.
-        # Windshield/dashcam camera mount puts the road horizon at ~48-52% of height.
-        top_y = int(0.50 * h)
+        # Use adaptive top_y: dashcam footage (top_y ~50%), low-angle/ground-level footage (top_y ~25%)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # First pass: estimate road area with broad mask to classify scene
+        broad_top_y = int(0.25 * h)
+        broad_road_pts = np.array([
+            [int(0.05 * w), broad_top_y],
+            [int(0.95 * w), broad_top_y],
+            [int(0.98 * w), h - 1],
+            [int(0.02 * w), h - 1]
+        ], np.int32)
+        broad_mask = np.zeros((h, w), dtype=np.uint8)
+        cv2.fillPoly(broad_mask, [broad_road_pts], 255)
+
+        # Classify road brightness to pick detection mode
+        road_pixels_broad = gray[broad_mask > 0]
+        mean_brightness = float(np.mean(road_pixels_broad)) if len(road_pixels_broad) > 0 else 128.0
+        is_dark_road = mean_brightness < 100  # Dirt/mud/gravel roads are dark
+
+        # Adaptive top_y: low-angle (ground-level) cameras see road from ~25% of height
+        # Dashcam/windshield cameras see road from ~48% of height
+        top_y = int(0.28 * h) if is_dark_road else int(0.48 * h)
         bottom_y = int(0.98 * h)
         road_mask = np.zeros((h, w), dtype=np.uint8)
 
         # Perspective road corridor (trapezoid narrowing toward vanishing horizon)
         road_pts = np.array([
-            [int(0.18 * w), top_y],
-            [int(0.82 * w), top_y],
-            [int(0.95 * w), bottom_y],
-            [int(0.05 * w), bottom_y]
+            [int(0.10 * w), top_y],
+            [int(0.90 * w), top_y],
+            [int(0.97 * w), bottom_y],
+            [int(0.03 * w), bottom_y]
         ], np.int32)
         cv2.fillPoly(road_mask, [road_pts], 255)
 
-        # Mask out any detected vehicle zones (bikes, cars, trucks, wheels, shadows)
+        # Mask out detected vehicle exclusion zones
         for vx1, vy1, vx2, vy2 in vehicle_exclusion_zones:
             cv2.rectangle(road_mask, (vx1, vy1), (vx2, vy2), 0, -1)
 
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # --- Sky/vegetation exclusion: reject very green or very bright sky pixels ---
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # Green vegetation mask (hue 35–90, high saturation)
+        veg_mask = cv2.inRange(hsv, (35, 60, 40), (90, 255, 255))
+        # Sky/cloud mask (very bright, low saturation, blue or white)
+        sky_mask = cv2.inRange(hsv, (90, 0, 200), (140, 60, 255))
+        white_sky_mask = cv2.inRange(frame, (200, 200, 200), (255, 255, 255))
+        # Restrict sky/cloud removal to top half of frame
+        top_half = np.zeros((h, w), dtype=np.uint8)
+        top_half[:h // 2, :] = 255
+        sky_mask = cv2.bitwise_and(cv2.bitwise_or(sky_mask, white_sky_mask), top_half)
+        cv2.bitwise_and(road_mask, cv2.bitwise_not(cv2.bitwise_or(veg_mask, sky_mask)), dst=road_mask)
+
         blurred = cv2.GaussianBlur(gray, (5, 5), 0)
 
-        # 3. Depression Segmentation on Drivable Road Surface
+        # 3. Dual-Mode Distress Segmentation
         road_gray = cv2.bitwise_and(blurred, blurred, mask=road_mask)
-        _, otsu = cv2.threshold(road_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        otsu = cv2.bitwise_and(otsu, otsu, mask=road_mask)
+        road_pixels_final = gray[road_mask > 0]
+        mean_road = float(np.mean(road_pixels_final)) if len(road_pixels_final) > 0 else 128.0
+        std_road = float(np.std(road_pixels_final)) if len(road_pixels_final) > 0 else 30.0
 
-        # Morphological filtering to eliminate aggregate grain and minor pavement cracks
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
-        dep_mask = cv2.morphologyEx(otsu, cv2.MORPH_OPEN, kernel)
-        dep_mask = cv2.morphologyEx(dep_mask, cv2.MORPH_CLOSE, kernel)
+        # Build detection candidate mask using BOTH modes simultaneously
+        combined_mask = np.zeros((h, w), dtype=np.uint8)
 
-        contours, _ = cv2.findContours(dep_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        min_area = w * h * 0.002
-        max_area = w * h * 0.12
+        # --- Mode A: Dark depression on lighter road surface (dry potholes on asphalt/concrete) ---
+        _, dark_thresh = cv2.threshold(road_gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        dark_thresh = cv2.bitwise_and(dark_thresh, dark_thresh, mask=road_mask)
+        kernel_a = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+        dark_mask = cv2.morphologyEx(dark_thresh, cv2.MORPH_OPEN, kernel_a)
+        dark_mask = cv2.morphologyEx(dark_mask, cv2.MORPH_CLOSE, kernel_a)
 
-        road_pixels = gray[road_mask > 0]
-        mean_road = float(np.mean(road_pixels)) if len(road_pixels) > 0 else 128.0
+        # --- Mode B: Bright water pools on darker road surface (water-filled potholes on dirt/mud) ---
+        # Water-filled potholes appear as bright white/silver patches due to sky reflection.
+        # Threshold = mean + 1.2 * std (adaptive to road surface variance).
+        bright_threshold = int(min(240, mean_road + max(28, 1.2 * std_road)))
+        _, bright_thresh = cv2.threshold(road_gray, bright_threshold, 255, cv2.THRESH_BINARY)
+        bright_thresh = cv2.bitwise_and(bright_thresh, bright_thresh, mask=road_mask)
+        # Use smaller kernel to preserve small/distant water pools
+        water_kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4, 4))
+        water_mask = cv2.morphologyEx(bright_thresh, cv2.MORPH_OPEN, water_kernel)
+        water_mask = cv2.morphologyEx(water_mask, cv2.MORPH_CLOSE, water_kernel)
+
+        # Combine both: on dark roads Mode B dominates; on light roads Mode A dominates
+        # Both modes contribute across all road types
+        combined_mask = cv2.bitwise_or(dark_mask, water_mask)
+
+        # 4. Find contours and validate candidates
+        # Smaller min_area to capture small/distant water-filled potholes visible in perspective
+        # ~0.00028 * 1280 * 720 = ~258 px (approx 16x16 patch) is the lower bound
+        min_area = w * h * 0.00028
+        max_area = w * h * 0.22
+
+        contours, _ = cv2.findContours(combined_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        seen_boxes = []  # deduplication
 
         for cnt in contours:
             area = cv2.contourArea(cnt)
@@ -151,48 +223,68 @@ class RoadPerceptionEngine:
                 bx, by, bw, bh = cv2.boundingRect(cnt)
                 aspect = bw / float(bh)
 
-                # Real road defects have reasonable aspect ratios and bounded dimensions
-                if 0.40 <= aspect <= 3.5 and bw < 0.45 * w and bh < 0.40 * h:
-                    # Verification 1: Candidate must not overlap with any vehicle exclusion zone
+                # Allow wider aspect ratio for water pools and larger potholes
+                if 0.25 <= aspect <= 5.0 and bw < 0.70 * w and bh < 0.55 * h:
+
+                    # Check: candidate must not be dominated by excluded vehicle zone pixels
                     patch_mask = road_mask[by:by + bh, bx:bx + bw]
-                    if patch_mask.size == 0 or (np.sum(patch_mask == 0) / float(patch_mask.size)) > 0.08:
+                    if patch_mask.size == 0 or (np.sum(patch_mask == 0) / float(patch_mask.size)) > 0.15:
                         continue
 
-                    # Verification 2: Center of mass must lie inside unoccluded drivable road
+                    # Center of mass must be on road surface
                     cx, cy = bx + bw // 2, by + bh // 2
                     if road_mask[cy, cx] == 0:
                         continue
 
-                    # Verification 3: Color Saturation & Chromatic Gate
-                    # Real asphalt road pavement has very low color saturation (neutral gray/dark brown).
-                    # Tail lights, vehicle paint, clothing, bikes, and pedestrians have vibrant colors / high saturation.
+                    # Color Saturation Gate: road pavement (asphalt/dirt/mud/water) has low saturation.
+                    # Vehicle paint, clothing, grass → reject. Only apply loosely to avoid blocking water.
                     patch_bgr = frame[by:by + bh, bx:bx + bw]
                     if patch_bgr.size > 0:
                         patch_hsv = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2HSV)
                         sat = patch_hsv[:, :, 1]
-                        if float(np.mean(sat)) > 38.0 or float(np.percentile(sat, 85)) > 75.0:
+                        mean_sat = float(np.mean(sat))
+                        # Water patches and mud have saturation < 45; bright green leaves = high
+                        if mean_sat > 55.0:
+                            continue
+                        # Also reject if the region is overwhelmingly green (grass/vegetation edge)
+                        hue = patch_hsv[:, :, 0]
+                        green_ratio = float(np.sum((hue >= 35) & (hue <= 85) & (sat > 50))) / float(patch_bgr.shape[0] * patch_bgr.shape[1])
+                        if green_ratio > 0.30:
                             continue
 
-                    # Verification 4: Check surrounding asphalt context
-                    # If candidate is a vehicle tire or shadow not caught by YOLO, the area directly above
-                    # will have metallic/body reflection or sharp horizontal edge
-                    if by > top_y + 20:
-                        strip_above = gray[by - 20:by, bx:bx + bw]
-                        strip_inside = gray[by:by + 20, bx:bx + bw]
-                        if strip_above.mean() > 210 and strip_inside.mean() < 60:
-                            continue
-
-                    # Contrast calculation: depressions are significantly darker than road surface
+                    # Compute defect signature: determine if this is water-pool or dark depression
                     c_mask = np.zeros(gray.shape, dtype=np.uint8)
                     cv2.drawContours(c_mask, [cnt], -1, 255, -1)
-                    mean_dep = cv2.mean(gray, mask=c_mask)[0]
-                    contrast = max(0, mean_road - mean_dep)
-                    conf = min(0.96, max(0.60, (contrast / 35.0) + 0.60))
+                    mean_patch = cv2.mean(gray, mask=c_mask)[0]
+                    contrast = mean_patch - mean_road  # positive = brighter than road, negative = darker
+
+                    # Accept if contrast is significant in EITHER direction
+                    abs_contrast = abs(contrast)
+                    if abs_contrast < 10:
+                        continue  # Too similar to road surface - noise
+
+                    # Confidence based on contrast magnitude
+                    conf = min(0.96, max(0.62, (abs_contrast / 40.0) + 0.62))
 
                     category = DefectCategory.POTHOLE
-                    if aspect > 2.5:
+                    if aspect > 2.8:
                         category = DefectCategory.LONGITUDINAL_CRACK
 
+                    # Deduplication: skip if too close to an already-added box
+                    is_dup = False
+                    for sb in seen_boxes:
+                        ox1, oy1, ox2, oy2 = sb
+                        overlap_x = max(0, min(bx + bw, ox2) - max(bx, ox1))
+                        overlap_y = max(0, min(by + bh, oy2) - max(by, oy1))
+                        overlap_area = overlap_x * overlap_y
+                        union_area = bw * bh + (ox2 - ox1) * (oy2 - oy1) - overlap_area
+                        if union_area > 0 and overlap_area / float(union_area) > 0.45:
+                            is_dup = True
+                            break
+                    if is_dup:
+                        continue
+
+                    seen_boxes.append((bx, by, bx + bw, by + bh))
                     boxes.append(BoundingBox(
                         x1=float(bx),
                         y1=float(by),
