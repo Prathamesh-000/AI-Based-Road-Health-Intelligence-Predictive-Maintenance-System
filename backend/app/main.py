@@ -82,6 +82,15 @@ async def get_public_portal_html():
     return HTMLResponse("<h1>Civic Portal</h1><p>Public Transparency Portal loading...</p>", headers=NO_CACHE_HEADERS)
 
 
+@app.get("/poster", response_class=HTMLResponse, tags=["Documentation"])
+async def get_poster_html():
+    poster_file = BASE_DIR.parent / "docs" / "project_poster.html"
+    if poster_file.exists():
+        with open(poster_file, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read(), headers=NO_CACHE_HEADERS)
+    return HTMLResponse("<h1>Project Poster</h1><p>Poster document not found.</p>", headers=NO_CACHE_HEADERS)
+
+
 @app.get("/", tags=["System"])
 async def root():
     return {
