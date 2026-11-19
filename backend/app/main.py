@@ -46,6 +46,13 @@ app.include_router(verification_router, prefix=API_PREFIX)
 app.include_router(public_router, prefix=API_PREFIX)
 
 
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0"
+}
+
+
 @app.get("/health", tags=["System"])
 async def health_check():
     return {
@@ -61,8 +68,8 @@ async def get_dashboard_html():
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
         with open(index_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse("<h1>Contractor Dashboard</h1><p>Dashboard UI loading...</p>")
+            return HTMLResponse(content=f.read(), headers=NO_CACHE_HEADERS)
+    return HTMLResponse("<h1>Contractor Dashboard</h1><p>Dashboard UI loading...</p>", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/public", response_class=HTMLResponse, tags=["Civic Portal"])
@@ -71,8 +78,8 @@ async def get_public_portal_html():
     portal_file = STATIC_DIR / "public_portal.html"
     if portal_file.exists():
         with open(portal_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse("<h1>Civic Portal</h1><p>Public Transparency Portal loading...</p>")
+            return HTMLResponse(content=f.read(), headers=NO_CACHE_HEADERS)
+    return HTMLResponse("<h1>Civic Portal</h1><p>Public Transparency Portal loading...</p>", headers=NO_CACHE_HEADERS)
 
 
 @app.get("/", tags=["System"])

@@ -52,10 +52,10 @@ class RoadPerceptionEngine:
         vehicle_exclusion_zones = []
 
         # 1. Deep Learning Vehicle & Person Localization Pass
-        # We run at a sensitive conf=0.15 to aggressively detect and eliminate ALL vehicles/bikes/trucks/cars
+        # We run at an ultra-sensitive conf=0.08 to aggressively detect and eliminate ALL vehicles/bikes/trucks/cars
         if self.model:
             try:
-                results = self.model(frame, verbose=False, conf=0.15)
+                results = self.model(frame, verbose=False, conf=0.08)
                 model_names = self.model.names if hasattr(self.model, "names") else {}
 
                 for r in results:
@@ -74,9 +74,9 @@ class RoadPerceptionEngine:
                             # Expand exclusion zone to thoroughly cover tires, wheels, exhaust, and undercarriage shadows
                             veh_w = coords[2] - coords[0]
                             veh_h = coords[3] - coords[1]
-                            pad_x = max(20, int(veh_w * 0.15))
+                            pad_x = max(25, int(veh_w * 0.20))
                             pad_top = max(20, int(veh_h * 0.15))
-                            pad_bottom = max(50, int(veh_h * 0.45))  # Cover contact patch & ground shadow
+                            pad_bottom = max(70, int(veh_h * 0.55))  # Cover contact patch & ground shadow
 
                             vx1 = max(0, int(coords[0]) - pad_x)
                             vy1 = max(0, int(coords[1]) - pad_top)
@@ -153,12 +153,27 @@ class RoadPerceptionEngine:
 
                 # Real road defects have reasonable aspect ratios and bounded dimensions
                 if 0.40 <= aspect <= 3.5 and bw < 0.45 * w and bh < 0.40 * h:
-                    # Verification 1: Center of mass must lie inside unoccluded drivable road
+                    # Verification 1: Candidate must not overlap with any vehicle exclusion zone
+                    patch_mask = road_mask[by:by + bh, bx:bx + bw]
+                    if patch_mask.size == 0 or (np.sum(patch_mask == 0) / float(patch_mask.size)) > 0.08:
+                        continue
+
+                    # Verification 2: Center of mass must lie inside unoccluded drivable road
                     cx, cy = bx + bw // 2, by + bh // 2
                     if road_mask[cy, cx] == 0:
                         continue
 
-                    # Verification 2: Check surrounding asphalt context
+                    # Verification 3: Color Saturation & Chromatic Gate
+                    # Real asphalt road pavement has very low color saturation (neutral gray/dark brown).
+                    # Tail lights, vehicle paint, clothing, bikes, and pedestrians have vibrant colors / high saturation.
+                    patch_bgr = frame[by:by + bh, bx:bx + bw]
+                    if patch_bgr.size > 0:
+                        patch_hsv = cv2.cvtColor(patch_bgr, cv2.COLOR_BGR2HSV)
+                        sat = patch_hsv[:, :, 1]
+                        if float(np.mean(sat)) > 38.0 or float(np.percentile(sat, 85)) > 75.0:
+                            continue
+
+                    # Verification 4: Check surrounding asphalt context
                     # If candidate is a vehicle tire or shadow not caught by YOLO, the area directly above
                     # will have metallic/body reflection or sharp horizontal edge
                     if by > top_y + 20:
