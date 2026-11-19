@@ -39,7 +39,7 @@ def test_telemetry_gpx():
   </trk>
 </gpx>
 """
-    test_gpx_path = backend_dir / "storage" / "uploads" / "test_route.gpx"
+    test_gpx_path = backend_dir / "storage" / "uploads" / "temp_synthetic_route.gpx"
     test_gpx_path.parent.mkdir(parents=True, exist_ok=True)
     with open(test_gpx_path, "w", encoding="utf-8") as f:
         f.write(gpx_content)
@@ -51,6 +51,8 @@ def test_telemetry_gpx():
     midpoint_coord = sync.get_coordinate_at_time(elapsed_seconds=10.0, total_duration=20.0)
     print(f"  -> Midpoint (10s) GPS: Lat {midpoint_coord.latitude}, Lng {midpoint_coord.longitude}, Elevation: {midpoint_coord.elevation_m}m")
     assert abs(midpoint_coord.latitude - 18.530000) < 0.0001, "GPX midpoint latitude interpolation failed"
+    if test_gpx_path.exists():
+        test_gpx_path.unlink()
     print("  -> Telemetry GPX test PASSED.")
 
 

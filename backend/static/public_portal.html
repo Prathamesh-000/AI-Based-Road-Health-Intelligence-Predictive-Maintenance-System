@@ -990,9 +990,10 @@
         } catch (_) {}
 
         // 4. Update UI labels and parameters
+        const sizeMb = (demoVideoFile.size / (1024 * 1024)).toFixed(2);
         document.getElementById('patrol-file-name').innerHTML = `
-          <span class="text-emerald-400 font-bold">sample_patrol_with_gps.mp4 (12.73 MB)</span>
-          <span class="block text-[11px] text-sky-400 font-mono mt-0.5">✅ Embedded ISO-6709 GPS Detected (+18.520400, +073.856700) + GPX Satellite Track</span>
+          <span class="text-emerald-400 font-bold">sample_patrol_with_gps.mp4 (${sizeMb} MB &bull; 27.7s Patrol Stream)</span>
+          <span class="block text-[11px] text-sky-400 font-mono mt-0.5">✅ Embedded ISO-6709 GPS Detected (+18.520400, +073.856700) + Synchronized GPX Track (29 pts)</span>
         `;
         document.getElementById('patrol-road-name').value = "State Highway 17 North";
         document.getElementById('patrol-lat').value = "18.520400";
