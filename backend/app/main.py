@@ -1,8 +1,8 @@
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, RedirectResponse
 
 from app.core.config import PROJECT_NAME, VERSION, API_PREFIX, STORAGE_DIR, BASE_DIR
 from app.api.routes_detect import router as detect_router
@@ -104,31 +104,34 @@ async def get_poster_pdf():
 
 
 @app.get("/", tags=["System"])
-async def root():
-    return {
-        "project": PROJECT_NAME,
-        "phase": PHASE,
-        "docs_url": "/docs",
-        "dashboard_url": "/dashboard",
-        "public_portal_url": "/public",
-        "endpoints": {
-            "detect_video": f"{API_PREFIX}/detect/video",
-            "detect_image": f"{API_PREFIX}/detect/image",
-            "list_incidents": f"{API_PREFIX}/incidents",
-            "create_incident": f"{API_PREFIX}/incidents/create-from-detection",
-            "list_notifications": f"{API_PREFIX}/notifications",
-            "preview_notification": f"{API_PREFIX}/notifications/preview/{{incident_id}}",
-            "dispatch_notification": f"{API_PREFIX}/notifications/dispatch/{{incident_id}}",
-            "list_contractors": f"{API_PREFIX}/contractors",
-            "contractor_queue": f"{API_PREFIX}/contractors/{{contractor_id}}/queue",
-            "submit_repair": f"{API_PREFIX}/contractors/submit-repair",
-            "verify_incident": f"{API_PREFIX}/verify/{{incident_id}}",
-            "verification_report": f"{API_PREFIX}/verify/{{incident_id}}/report",
-            "list_verification_reports": f"{API_PREFIX}/verify/reports",
-            "evaluate_images": f"{API_PREFIX}/verify/evaluate-images",
-            "public_rhi": f"{API_PREFIX}/public/rhi",
-            "public_hazards_geojson": f"{API_PREFIX}/public/hazards",
-            "public_audit_feed": f"{API_PREFIX}/public/audit-feed",
-            "public_segments": f"{API_PREFIX}/public/segments"
+async def root(request: Request):
+    accept = request.headers.get("accept", "")
+    if "application/json" in accept and "text/html" not in accept:
+        return {
+            "project": PROJECT_NAME,
+            "phase": PHASE,
+            "docs_url": "/docs",
+            "dashboard_url": "/dashboard",
+            "public_portal_url": "/public",
+            "endpoints": {
+                "detect_video": f"{API_PREFIX}/detect/video",
+                "detect_image": f"{API_PREFIX}/detect/image",
+                "list_incidents": f"{API_PREFIX}/incidents",
+                "create_incident": f"{API_PREFIX}/incidents/create-from-detection",
+                "list_notifications": f"{API_PREFIX}/notifications",
+                "preview_notification": f"{API_PREFIX}/notifications/preview/{{incident_id}}",
+                "dispatch_notification": f"{API_PREFIX}/notifications/dispatch/{{incident_id}}",
+                "list_contractors": f"{API_PREFIX}/contractors",
+                "contractor_queue": f"{API_PREFIX}/contractors/{{contractor_id}}/queue",
+                "submit_repair": f"{API_PREFIX}/contractors/submit-repair",
+                "verify_incident": f"{API_PREFIX}/verify/{{incident_id}}",
+                "verification_report": f"{API_PREFIX}/verify/{{incident_id}}/report",
+                "list_verification_reports": f"{API_PREFIX}/verify/reports",
+                "evaluate_images": f"{API_PREFIX}/verify/evaluate-images",
+                "public_rhi": f"{API_PREFIX}/public/rhi",
+                "public_hazards_geojson": f"{API_PREFIX}/public/hazards",
+                "public_audit_feed": f"{API_PREFIX}/public/audit-feed",
+                "public_segments": f"{API_PREFIX}/public/segments"
+            }
         }
-    }
+    return RedirectResponse(url="/public", status_code=307)
