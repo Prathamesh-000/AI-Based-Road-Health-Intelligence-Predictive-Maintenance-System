@@ -114,12 +114,12 @@ class RepairVerificationEngine:
             # Edge ravelling contour
             cv2.ellipse(frame, (center_x, center_y), (92, 60), 15, 0, 360, (60, 60, 60), 3)
         else:
-            # Freshly compacted dark bitumen patch (saw-cut milled rectangular asphalt patch)
-            cv2.rectangle(frame, (190, 210), (470, 410), (52, 52, 52), -1)
-            # Bitumen emulsion perimeter sealant
-            cv2.rectangle(frame, (188, 208), (472, 412), (36, 36, 36), 3)
-            # Fine compacted aggregate texture inside patch
-            patch_noise = np.random.randint(-6, 6, (200, 280, 3), dtype=np.int16)
+            # Freshly compacted hot-mix asphalt patch — same base color as surrounding road
+            # Real repaired asphalt blends in; only fine texture difference distinguishes it
+            patch_color = base_color + 5  # Slightly brighter (fresh binder coat), no high contrast
+            cv2.rectangle(frame, (190, 210), (470, 410), (patch_color, patch_color, patch_color), -1)
+            # Fine compacted aggregate micro-texture (uniform, low noise) — no dark border
+            patch_noise = np.random.randint(-4, 4, (200, 280, 3), dtype=np.int16)
             patch_roi = frame[210:410, 190:470].astype(np.int16) + patch_noise
             frame[210:410, 190:470] = np.clip(patch_roi, 0, 255).astype(np.uint8)
 
