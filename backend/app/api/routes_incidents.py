@@ -14,12 +14,14 @@ from app.models.schemas import (
     GeoLocation,
     PhysicalMetrics,
     AuditLogEntry,
-    NotificationEvent
+    NotificationEvent,
+    CavityMesh3DResponse
 )
 from app.core.database import db
 from app.services.spatial import GeospatialMatcher
 from app.services.sla import SLAEngine
 from app.services.notification import notification_dispatcher
+from app.services.volumetric_3d import volumetric_3d_service
 
 router = APIRouter(prefix="/incidents", tags=["Phase 2: Incident Lifecycle & Spatial Management"])
 spatial_matcher = GeospatialMatcher()
@@ -165,6 +167,44 @@ async def get_incident(incident_id: str):
     if not inc:
         raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
     return inc
+
+
+@router.get("/generate-3d-mesh/query", response_model=CavityMesh3DResponse, summary="Synthesize 3D Cavity Topography on-the-fly")
+async def generate_3d_mesh_query(
+    defect_type: str = Query("pothole", description="Defect classification"),
+    severity: str = Query("HIGH", description="Defect severity"),
+    surface_area_m2: float = Query(0.55, description="Surface area in m2"),
+    estimated_depth_m: float = Query(0.085, description="Estimated depth in meters"),
+    road_name: Optional[str] = Query(None, description="Road corridor name"),
+    grid_size: int = Query(40, ge=20, le=80, description="Mesh grid resolution")
+):
+    """
+    Computes real-time 3D topographical mesh and volumetric metrics for an arbitrary defect,
+    allowing instant 3D inspection before saving to database.
+    """
+    return volumetric_3d_service.generate_cavity_mesh(
+        defect_type=defect_type,
+        severity=severity,
+        road_name=road_name,
+        surface_area_m2=surface_area_m2,
+        estimated_depth_m=estimated_depth_m,
+        grid_size=grid_size
+    )
+
+
+@router.get("/{incident_id}/3d-mesh", response_model=CavityMesh3DResponse, summary="Get 3D Cavity Topographical Mesh for Incident")
+async def get_incident_3d_mesh(
+    incident_id: str,
+    grid_size: int = Query(40, ge=20, le=80, description="Mesh grid resolution")
+):
+    """
+    Retrieves full 3D metric heightmap, transverse/longitudinal cross-section profiles,
+    and compacted asphalt tonnage breakdown for the specified incident.
+    """
+    inc = db.get_incident(incident_id)
+    if not inc:
+        raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
+    return volumetric_3d_service.generate_cavity_mesh(incident_id=incident_id, grid_size=grid_size)
 
 
 @router.post("/create-from-detection", response_model=Incident, status_code=status.HTTP_201_CREATED)

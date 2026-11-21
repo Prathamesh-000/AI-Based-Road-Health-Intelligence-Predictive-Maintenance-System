@@ -351,3 +351,29 @@ class PublicAuditCard(BaseModel):
     texture_compliance_score: Optional[float] = None
     explanation: Optional[str] = None
     asphalt_used_kg: Optional[float] = None
+
+
+class DepthProfilePoint(BaseModel):
+    offset_m: float
+    depth_cm: float
+
+
+class CavityMesh3DResponse(BaseModel):
+    incident_id: Optional[str] = None
+    defect_type: str = "pothole"
+    severity: str = "HIGH"
+    road_name: Optional[str] = None
+    surface_area_m2: float
+    max_depth_cm: float
+    mean_depth_cm: float
+    volume_m3: float
+    volume_liters: float
+    asphalt_required_kg: float
+    compaction_density_kg_m3: float = 2400.0
+    grid_size: int = 40
+    grid_spacing_m: float = 0.025
+    heightmap: List[List[float]]
+    transverse_profile: List[DepthProfilePoint]
+    longitudinal_profile: List[DepthProfilePoint]
+    morphology: str
+    repair_grade: str

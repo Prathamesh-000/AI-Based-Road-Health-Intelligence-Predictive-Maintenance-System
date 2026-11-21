@@ -5,9 +5,12 @@ from app.models.schemas import (
     MunicipalRHIResponse,
     GeoJSONFeatureCollection,
     PublicAuditCard,
-    RoadSegmentHealth
+    RoadSegmentHealth,
+    CavityMesh3DResponse
 )
 from app.services.civic import civic_engine
+from app.services.volumetric_3d import volumetric_3d_service
+from app.core.database import db
 
 
 router = APIRouter(prefix="/public", tags=["Phase 6: Public Transparency Portal & Civic Intelligence"])
@@ -65,4 +68,41 @@ def get_road_segments_health():
     """
     rhi_data = civic_engine.compute_municipal_rhi()
     return rhi_data.segment_breakdown
+
+
+@router.get("/incidents/{incident_id}/3d-mesh", response_model=CavityMesh3DResponse, summary="Get 3D Cavity Topography for Incident")
+def get_public_incident_3d_mesh(
+    incident_id: str,
+    grid_size: int = Query(40, ge=20, le=80, description="Mesh grid resolution")
+):
+    """
+    Public endpoint returning interactive 3D topography heightmap, cross-sections,
+    and material sizing metrics for citizen inspection.
+    """
+    inc = db.get_incident(incident_id)
+    if not inc:
+        raise HTTPException(status_code=404, detail=f"Incident '{incident_id}' not found.")
+    return volumetric_3d_service.generate_cavity_mesh(incident_id=incident_id, grid_size=grid_size)
+
+
+@router.get("/generate-3d-mesh", response_model=CavityMesh3DResponse, summary="Generate On-the-Fly 3D Cavity Topography")
+def generate_public_3d_mesh(
+    defect_type: str = Query("pothole", description="Defect classification"),
+    severity: str = Query("HIGH", description="Defect severity"),
+    surface_area_m2: float = Query(0.55, description="Surface area in m2"),
+    estimated_depth_m: float = Query(0.085, description="Estimated depth in meters"),
+    road_name: Optional[str] = Query(None, description="Road corridor name"),
+    grid_size: int = Query(40, ge=20, le=80, description="Mesh grid resolution")
+):
+    """
+    Generates on-the-fly 3D mesh topography from patrol detections before ticket creation.
+    """
+    return volumetric_3d_service.generate_cavity_mesh(
+        defect_type=defect_type,
+        severity=severity,
+        road_name=road_name,
+        surface_area_m2=surface_area_m2,
+        estimated_depth_m=estimated_depth_m,
+        grid_size=grid_size
+    )
 

@@ -380,7 +380,11 @@
                 <span class="${slaClass}">${inc.sla_metrics.remaining_hours}h remaining (${inc.sla_metrics.status})</span>
                 <span class="text-slate-500 block text-[10px]">Est. Asphalt: ${inc.physical_metrics.asphalt_required_kg} kg</span>
               </div>
-              <div>
+              <div class="flex items-center space-x-2">
+                <a href="/public" target="_blank" onclick="localStorage.setItem('open3DIncident', '${inc.id}')" class="px-2.5 py-1.5 bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition shadow" title="Inspect 3D Metric Cavity Topography on Civic Portal">
+                  <i data-lucide="box" class="w-3.5 h-3.5 text-amber-400"></i>
+                  <span>3D Mesh</span>
+                </a>
                 ${actionButtons}
               </div>
             </div>

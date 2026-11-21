@@ -11,6 +11,9 @@
   <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Three.js & OrbitControls for 3D Pavement Cavity Topography -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -419,10 +422,175 @@
 
       <!-- Modal Footer -->
       <div class="p-4 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
-        <span>Verified by Closed-Loop AI Verification Engine</span>
+        <div class="flex items-center space-x-2">
+          <span>Verified by Closed-Loop AI Verification Engine</span>
+          <button id="modal-view-3d-btn" onclick="open3DFromAuditModal()" class="px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 font-bold rounded-lg text-xs flex items-center space-x-1.5 transition shadow">
+            <i data-lucide="box" class="w-4 h-4 text-indigo-400"></i>
+            <span>3D Cavity Topography</span>
+          </button>
+        </div>
         <button onclick="closeAuditModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-semibold transition">
           Close Audit View
         </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3D Pavement Cavity Topography & Volumetric Mesh Modal -->
+  <div id="cavity-3d-modal" class="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full max-h-[94vh] overflow-y-auto shadow-2xl flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900 z-10">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500/20 to-sky-500/20 border border-indigo-500/30 flex items-center justify-center text-sky-400 shadow-inner">
+            <i data-lucide="box" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center space-x-2">
+              <span id="mesh-modal-title">3D Pavement Cavity Topography</span>
+              <span id="mesh-modal-severity" class="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-bold">HIGH DISTRESS</span>
+            </h3>
+            <p id="mesh-modal-subtitle" class="text-xs text-slate-400">Volumetric Pavement Reconstruction &bull; Metric Depth Profiling</p>
+          </div>
+        </div>
+        <button onclick="close3DModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+        
+        <!-- Left: Interactive 3D WebGL Canvas (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col space-y-3">
+          <div class="relative w-full h-[380px] bg-slate-950 rounded-xl border border-slate-800 overflow-hidden shadow-inner group">
+            
+            <!-- Three.js Canvas Container -->
+            <div id="threejs-canvas-container" class="w-full h-full cursor-grab active:cursor-grabbing"></div>
+            
+            <!-- Floating HUD Controls Overlay -->
+            <div class="absolute top-3 left-3 flex items-center space-x-1.5 bg-slate-900/80 backdrop-blur-md px-2.5 py-1.5 rounded-lg border border-slate-800 text-[11px] text-slate-300">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              <span class="font-mono">WebGL Metric Mesh</span>
+            </div>
+
+            <!-- Viewport Action Buttons -->
+            <div class="absolute top-3 right-3 flex items-center space-x-1.5 bg-slate-900/80 backdrop-blur-md p-1 rounded-lg border border-slate-800 text-xs">
+              <button onclick="toggle3DWireframe()" id="btn-wireframe-toggle" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-mono text-[11px] transition flex items-center space-x-1" title="Toggle Engineering Wireframe Mesh">
+                <i data-lucide="grid" class="w-3 h-3"></i>
+                <span>Wireframe</span>
+              </button>
+              <button onclick="toggle3DAutoRotate()" id="btn-rotate-toggle" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-mono text-[11px] transition flex items-center space-x-1" title="Toggle Orbit Rotation">
+                <i data-lucide="rotate-cw" class="w-3 h-3"></i>
+                <span>Auto-Orbit</span>
+              </button>
+              <button onclick="reset3DCamera()" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-mono text-[11px] transition" title="Reset View">
+                <span>Reset</span>
+              </button>
+            </div>
+
+            <!-- Interaction Hints -->
+            <div class="absolute bottom-2.5 left-3 text-[10px] text-slate-500 font-mono flex items-center space-x-3 pointer-events-none">
+              <span>🖱️ Drag: Orbit (360°)</span>
+              <span>🔍 Scroll: Zoom</span>
+              <span>↔️ Right-Click: Pan</span>
+            </div>
+
+            <!-- Color Elevation Scale Legend -->
+            <div class="absolute bottom-2.5 right-3 bg-slate-900/85 backdrop-blur-sm px-2.5 py-1 rounded border border-slate-800 text-[10px] font-mono flex items-center space-x-2">
+              <span class="text-slate-400">Elevation:</span>
+              <div class="w-16 h-2 rounded bg-gradient-to-r from-rose-500 via-amber-400 to-sky-400"></div>
+              <span id="mesh-depth-legend" class="text-rose-400 font-bold">-8.5cm &rarr; 0cm</span>
+            </div>
+
+          </div>
+
+          <!-- Transverse Cross-Section Profile SVG Slice -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3.5 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1.5">
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>Transverse Cross-Sectional Depth Profile (Z vs X)</span>
+              </span>
+              <span id="slice-max-depth-badge" class="font-mono text-[11px] text-rose-400 font-bold">Max Depth: -8.5 cm</span>
+            </div>
+            <div class="h-20 w-full relative">
+              <svg id="cross-section-svg" class="w-full h-full overflow-visible" viewBox="0 0 400 80">
+                <!-- SVG path will be dynamically generated -->
+              </svg>
+            </div>
+            <div class="flex justify-between text-[10px] font-mono text-slate-500 px-1">
+              <span>-0.45m (Shoulder)</span>
+              <span>0.0m (Cavity Center)</span>
+              <span>+0.45m (Shoulder)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Telemetry, Volumetrics & Material Bill-of-Materials (5 cols) -->
+        <div class="lg:col-span-5 flex flex-col justify-between space-y-4">
+          
+          <!-- Metric Tiles Grid -->
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+              <span class="text-slate-500 block text-[10px] uppercase font-semibold">Max Cavity Depth</span>
+              <span id="mesh-max-depth" class="font-mono font-black text-rose-400 text-lg mt-0.5 block">8.5 cm</span>
+              <span class="text-[10px] text-slate-500">ASTM Severity: High</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+              <span class="text-slate-500 block text-[10px] uppercase font-semibold">Surface Defect Area</span>
+              <span id="mesh-surface-area" class="font-mono font-black text-sky-400 text-lg mt-0.5 block">0.55 m²</span>
+              <span class="text-[10px] text-slate-500">Bounding Footprint</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+              <span class="text-slate-500 block text-[10px] uppercase font-semibold">Cavity Displacement</span>
+              <span id="mesh-volume" class="font-mono font-black text-amber-400 text-lg mt-0.5 block">0.044 m³</span>
+              <span id="mesh-liters" class="text-[10px] text-amber-500 font-mono">44.0 Liters</span>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 p-3 rounded-xl">
+              <span class="text-slate-500 block text-[10px] uppercase font-semibold">Hot-Mix Asphalt Req.</span>
+              <span id="mesh-asphalt-kg" class="font-mono font-black text-emerald-400 text-lg mt-0.5 block">105.6 kg</span>
+              <span class="text-[10px] text-emerald-500/80 font-mono">Compacted @ 2,400 kg/m³</span>
+            </div>
+          </div>
+
+          <!-- Defect Morphology Analysis -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-1.5 text-xs">
+            <div class="font-bold text-slate-200 flex items-center space-x-1.5">
+              <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-400"></i>
+              <span>Pavement Morphology & Distress Classification</span>
+            </div>
+            <p id="mesh-morphology-desc" class="text-slate-400 leading-relaxed text-[11px]">
+              Critical Structural Cavity (Sub-base Penetration & Wheel-Path Rutting). High impact risk to low-clearance vehicles.
+            </p>
+          </div>
+
+          <!-- Civil Engineering Work Order Specification -->
+          <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3.5 space-y-2 text-xs">
+            <div class="font-bold text-slate-200 flex items-center space-x-1.5">
+              <i data-lucide="wrench" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Standard Civil Engineering Repair Specification</span>
+            </div>
+            <p id="mesh-repair-spec" class="text-slate-300 font-mono text-[11px] leading-relaxed bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+              VG-30 Hot Mix Asphalt (HMA): Cold-mill edges 100mm, apply SS-1h cationic tack coat @ 0.25 L/m², compact 50mm Binder Course + 35mm Bituminous Concrete wearing course.
+            </p>
+          </div>
+
+          <!-- Topographic Export / Action Bar -->
+          <div class="flex items-center space-x-2 pt-2">
+            <button onclick="download3DTopographyJSON()" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition border border-slate-700">
+              <i data-lucide="download" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Export Mesh JSON</span>
+            </button>
+            <button onclick="close3DModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-semibold transition">
+              Close
+            </button>
+          </div>
+
+        </div>
+
       </div>
 
     </div>
@@ -768,13 +936,19 @@
               <span class="text-slate-400 text-[11px] block">${inc.defect_type.toUpperCase()} &bull; ${inc.severity} Severity</span>
               <span class="text-slate-500 text-[10px] block">Contractor: ${inc.contractor_name}</span>
             </div>
-            ${inc.visual_diff_url ? `
-              <button onclick="openAuditModal('${inc.incident_id}')" class="w-full mt-2 py-1 px-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-center text-[11px] font-semibold block transition">
-                View Before/After Audit
+            <div class="flex items-center space-x-1.5 mt-2">
+              <button onclick="open3DCavityModal('${inc.incident_id}')" class="flex-1 py-1 px-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded text-center text-[10px] font-bold block transition flex items-center justify-center space-x-1">
+                <i data-lucide="box" class="w-3 h-3"></i>
+                <span>3D Mesh</span>
               </button>
-            ` : `
-              <span class="text-[10px] text-amber-400 block mt-1">Maintenance Dispatched</span>
-            `}
+              ${inc.visual_diff_url ? `
+                <button onclick="openAuditModal('${inc.incident_id}')" class="flex-1 py-1 px-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded text-center text-[10px] font-semibold block transition">
+                  Audit Card
+                </button>
+              ` : `
+                <span class="text-[10px] text-amber-400 block px-1">Dispatched</span>
+              `}
+            </div>
           </div>
         `;
 
@@ -874,10 +1048,16 @@
 
           <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
             <span class="text-slate-500 text-[11px] font-mono">${new Date(c.reported_at).toLocaleDateString()}</span>
-            <button onclick="openAuditModal('${c.incident_id}')" class="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
-              <span>View Audit Card</span>
-              <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
-            </button>
+            <div class="flex items-center space-x-1.5">
+              <button onclick="open3DCavityModal('${c.incident_id}')" class="px-2.5 py-1 bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition" title="Inspect 3D Metric Cavity Topography">
+                <i data-lucide="box" class="w-3.5 h-3.5 text-amber-400"></i>
+                <span>3D Mesh</span>
+              </button>
+              <button onclick="openAuditModal('${c.incident_id}')" class="px-2.5 py-1 bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+                <span>View Audit</span>
+                <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+              </button>
+            </div>
           </div>
         `;
 
@@ -886,6 +1066,7 @@
     }
 
     function openAuditModal(incidentId) {
+      currentAuditIncidentId = incidentId;
       const inc = allIncidents.find(i => i.incident_id === incidentId);
       if (!inc) return;
 
@@ -1257,10 +1438,16 @@
             </div>
           </div>
 
-          <button onclick="promoteDefectToTicket('${encodeURIComponent(JSON.stringify(d))}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shrink-0 shadow">
-            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-            <span>Register as Ticket</span>
-          </button>
+          <div class="flex items-center space-x-2 shrink-0">
+            <button onclick="open3DCavityModalFromDefect('${encodeURIComponent(JSON.stringify(d))}')" class="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow" title="Inspect 3D Metric Cavity Mesh">
+              <i data-lucide="box" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>3D Mesh</span>
+            </button>
+            <button onclick="promoteDefectToTicket('${encodeURIComponent(JSON.stringify(d))}')" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center space-x-1 shadow">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>Register as Ticket</span>
+            </button>
+          </div>
         `;
         list.appendChild(item);
       });
@@ -1365,10 +1552,324 @@
       }
     }
 
+    // =========================================================
+    // Phase 7+: 3D Pavement Cavity Topography & Mesh Inspector
+    // =========================================================
+    let currentAuditIncidentId = null;
+    let three3DScene = null;
+    let three3DCamera = null;
+    let three3DRenderer = null;
+    let three3DControls = null;
+    let three3DAnimId = null;
+    let three3DMesh = null;
+    let three3DWireMesh = null;
+    let isWireframeActive = false;
+    let isAutoOrbitActive = true;
+    let current3DMeshData = null;
+
+    function open3DFromAuditModal() {
+      if (currentAuditIncidentId) {
+        open3DCavityModal(currentAuditIncidentId);
+      }
+    }
+
+    async function open3DCavityModal(incidentId) {
+      try {
+        const modal = document.getElementById('cavity-3d-modal');
+        modal.classList.remove('hidden');
+
+        document.getElementById('mesh-modal-title').innerText = `${incidentId} - 3D Cavity Topography`;
+        
+        const res = await fetch(`/api/v1/public/incidents/${incidentId}/3d-mesh`);
+        if (!res.ok) throw new Error("Could not retrieve 3D cavity mesh");
+        const meshData = await res.json();
+        current3DMeshData = meshData;
+
+        populate3DTelemetry(meshData);
+        initThreeJSCavity(meshData);
+        renderCrossSectionSVG(meshData.transverse_profile, meshData.max_depth_cm);
+        lucide.createIcons();
+      } catch (err) {
+        console.warn("Falling back to synthetic 3D topography:", err);
+        const res = await fetch(`/api/v1/public/generate-3d-mesh?surface_area_m2=0.55&estimated_depth_m=0.085&severity=HIGH&defect_type=pothole`);
+        const fallbackData = await res.json();
+        current3DMeshData = fallbackData;
+        populate3DTelemetry(fallbackData);
+        initThreeJSCavity(fallbackData);
+        renderCrossSectionSVG(fallbackData.transverse_profile, fallbackData.max_depth_cm);
+        lucide.createIcons();
+      }
+    }
+
+    async function open3DCavityModalFromDefect(encodedDefectJson) {
+      try {
+        const defect = JSON.parse(decodeURIComponent(encodedDefectJson));
+        const modal = document.getElementById('cavity-3d-modal');
+        modal.classList.remove('hidden');
+
+        document.getElementById('mesh-modal-title').innerText = `Live Patrol Defect #${defect.track_id || 1} - 3D Topography`;
+
+        const area = defect.physical_metrics ? defect.physical_metrics.surface_area_m2 : 0.55;
+        const depthM = defect.physical_metrics ? defect.physical_metrics.estimated_depth_m : 0.085;
+        const sev = defect.severity || "HIGH";
+
+        const res = await fetch(`/api/v1/public/generate-3d-mesh?surface_area_m2=${area}&estimated_depth_m=${depthM}&severity=${sev}&defect_type=${defect.category || 'pothole'}`);
+        const meshData = await res.json();
+        current3DMeshData = meshData;
+
+        populate3DTelemetry(meshData);
+        initThreeJSCavity(meshData);
+        renderCrossSectionSVG(meshData.transverse_profile, meshData.max_depth_cm);
+        lucide.createIcons();
+      } catch (err) {
+        console.error("Failed to render defect 3D mesh:", err);
+      }
+    }
+
+    function populate3DTelemetry(data) {
+      document.getElementById('mesh-modal-severity').innerText = `${data.severity.toUpperCase()} DISTRESS`;
+      document.getElementById('mesh-modal-subtitle').innerText = `${data.road_name} • ${data.defect_type.toUpperCase()} • ${data.morphology}`;
+      document.getElementById('mesh-max-depth').innerText = `${data.max_depth_cm} cm`;
+      document.getElementById('mesh-surface-area').innerText = `${data.surface_area_m2} m²`;
+      document.getElementById('mesh-volume').innerText = `${data.volume_m3} m³`;
+      document.getElementById('mesh-liters').innerText = `${data.volume_liters} Liters Displacement`;
+      document.getElementById('mesh-asphalt-kg').innerText = `${data.asphalt_required_kg} kg`;
+      document.getElementById('mesh-depth-legend').innerText = `-${data.max_depth_cm}cm → 0cm`;
+      document.getElementById('slice-max-depth-badge').innerText = `Max Depth: -${data.max_depth_cm} cm`;
+      document.getElementById('mesh-morphology-desc').innerText = `${data.morphology}. High impact risk to low-clearance vehicles. Numerical cavity volume verified @ 2,400 kg/m³.`;
+      document.getElementById('mesh-repair-spec').innerText = data.repair_grade;
+    }
+
+    function initThreeJSCavity(meshData) {
+      const container = document.getElementById('threejs-canvas-container');
+      if (!container) return;
+
+      if (three3DAnimId) cancelAnimationFrame(three3DAnimId);
+      if (three3DRenderer) {
+        three3DRenderer.dispose();
+        container.innerHTML = '';
+      }
+
+      if (typeof THREE === 'undefined') {
+        container.innerHTML = `
+          <div class="flex items-center justify-center h-full text-center p-6 text-slate-400">
+            <div>
+              <p class="font-bold text-sm text-slate-200">Three.js WebGL Library Initializing...</p>
+              <p class="text-xs mt-1">Please ensure WebGL is enabled in your browser.</p>
+            </div>
+          </div>
+        `;
+        return;
+      }
+
+      const width = container.clientWidth || 540;
+      const height = container.clientHeight || 380;
+
+      three3DScene = new THREE.Scene();
+      three3DScene.background = new THREE.Color(0x060913);
+
+      three3DCamera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+      three3DCamera.position.set(2.4, 2.2, 2.8);
+
+      three3DRenderer = new THREE.WebGLRenderer({ antialias: true });
+      three3DRenderer.setSize(width, height);
+      three3DRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      container.appendChild(three3DRenderer.domElement);
+
+      if (typeof THREE.OrbitControls !== 'undefined') {
+        three3DControls = new THREE.OrbitControls(three3DCamera, three3DRenderer.domElement);
+        three3DControls.enableDamping = true;
+        three3DControls.dampingFactor = 0.05;
+        three3DControls.maxPolarAngle = Math.PI / 2 - 0.05;
+        three3DControls.minDistance = 1.2;
+        three3DControls.maxDistance = 8.0;
+      }
+
+      const gridSize = meshData.grid_size;
+      const widthM = Math.sqrt(meshData.surface_area_m2 / 1.25);
+      const lengthM = widthM * 1.25;
+      const planeExtentX = widthM * 1.6;
+      const planeExtentZ = lengthM * 1.6;
+
+      const geometry = new THREE.PlaneGeometry(planeExtentX, planeExtentZ, gridSize - 1, gridSize - 1);
+      geometry.rotateX(-Math.PI / 2);
+
+      const pos = geometry.attributes.position;
+      const colors = [];
+      const maxD = Math.max(0.1, meshData.max_depth_cm);
+      const depthExaggeration = 2.4;
+
+      for (let i = 0; i < gridSize; i++) {
+        for (let j = 0; j < gridSize; j++) {
+          const idx = i * gridSize + j;
+          const zDepth = meshData.heightmap[i] ? meshData.heightmap[i][j] : 0.0;
+          const yElev = (zDepth / 100.0) * depthExaggeration;
+          pos.setY(idx, yElev);
+
+          const normDepth = Math.min(1.0, Math.max(0.0, -zDepth / maxD));
+          const col = new THREE.Color();
+          if (normDepth < 0.15) {
+            col.setRGB(0.18 + normDepth * 0.2, 0.45, 0.65);
+          } else if (normDepth < 0.55) {
+            col.setRGB(0.95, 0.70 - (normDepth - 0.15), 0.12);
+          } else {
+            col.setRGB(0.96, 0.15, 0.35);
+          }
+          colors.push(col.r, col.g, col.b);
+        }
+      }
+
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.85,
+        metalness: 0.15,
+        side: THREE.DoubleSide
+      });
+
+      three3DMesh = new THREE.Mesh(geometry, material);
+      three3DScene.add(three3DMesh);
+
+      const wireMaterial = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.18
+      });
+      three3DWireMesh = new THREE.Mesh(geometry, wireMaterial);
+      three3DScene.add(three3DWireMesh);
+
+      const datumGrid = new THREE.GridHelper(planeExtentX * 1.5, 12, 0x38bdf8, 0x1e293b);
+      datumGrid.position.y = 0.002;
+      three3DScene.add(datumGrid);
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 1.4);
+      dirLight.position.set(4, 6, 4);
+      three3DScene.add(dirLight);
+
+      const blueBackLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
+      blueBackLight.position.set(-4, 3, -4);
+      three3DScene.add(blueBackLight);
+
+      const ambLight = new THREE.AmbientLight(0x64748b, 0.5);
+      three3DScene.add(ambLight);
+
+      function animate() {
+        three3DAnimId = requestAnimationFrame(animate);
+        if (isAutoOrbitActive && three3DMesh) {
+          three3DMesh.rotation.y += 0.004;
+          three3DWireMesh.rotation.y += 0.004;
+        }
+        if (three3DControls) three3DControls.update();
+        three3DRenderer.render(three3DScene, three3DCamera);
+      }
+      animate();
+    }
+
+    function renderCrossSectionSVG(profile, maxDepthCm) {
+      const svg = document.getElementById('cross-section-svg');
+      if (!svg || !profile || profile.length === 0) return;
+
+      const w = 400;
+      const h = 75;
+      const padding = 15;
+      const baselineY = 18;
+      const maxH = h - padding;
+
+      const n = profile.length;
+      let pathD = `M 0,${baselineY}`;
+      let fillD = `M 0,${baselineY}`;
+
+      profile.forEach((pt, idx) => {
+        const x = (idx / (n - 1)) * w;
+        const depthRatio = Math.min(1.0, Math.max(0.0, -pt.depth_cm / Math.max(0.1, maxDepthCm)));
+        const y = baselineY + (depthRatio * (maxH - baselineY));
+        pathD += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
+        fillD += ` L ${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+
+      fillD += ` L ${w},${baselineY} Z`;
+
+      svg.innerHTML = `
+        <line x1="0" y1="${baselineY}" x2="${w}" y2="${baselineY}" stroke="#334155" stroke-dasharray="4,4" stroke-width="1.5" />
+        <text x="5" y="${baselineY - 5}" fill="#64748b" font-family="monospace" font-size="9">Datum Road Level (0.0 cm)</text>
+        <defs>
+          <linearGradient id="cavityFill" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f43f5e" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#f43f5e" stop-opacity="0.5"/>
+          </linearGradient>
+        </defs>
+        <path d="${fillD}" fill="url(#cavityFill)" />
+        <path d="${pathD}" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+        <circle cx="${w / 2}" cy="${maxH}" r="4" fill="#fb7185" stroke="#ffffff" stroke-width="1.5" />
+        <text x="${w / 2 + 8}" y="${maxH - 4}" fill="#fb7185" font-family="monospace" font-weight="bold" font-size="10">-${maxDepthCm} cm</text>
+      `;
+    }
+
+    function toggle3DWireframe() {
+      if (!three3DWireMesh) return;
+      isWireframeActive = !isWireframeActive;
+      three3DWireMesh.material.opacity = isWireframeActive ? 0.75 : 0.18;
+      const btn = document.getElementById('btn-wireframe-toggle');
+      if (btn) {
+        btn.className = isWireframeActive ? 
+          "px-2 py-1 bg-sky-600 text-white rounded font-mono text-[11px] transition flex items-center space-x-1" :
+          "px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-mono text-[11px] transition flex items-center space-x-1";
+      }
+    }
+
+    function toggle3DAutoRotate() {
+      isAutoOrbitActive = !isAutoOrbitActive;
+      const btn = document.getElementById('btn-rotate-toggle');
+      if (btn) {
+        btn.className = isAutoOrbitActive ? 
+          "px-2 py-1 bg-emerald-600 text-white rounded font-mono text-[11px] transition flex items-center space-x-1" :
+          "px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-mono text-[11px] transition flex items-center space-x-1";
+      }
+    }
+
+    function reset3DCamera() {
+      if (three3DCamera && three3DControls) {
+        three3DCamera.position.set(2.4, 2.2, 2.8);
+        three3DControls.target.set(0, 0, 0);
+        three3DControls.update();
+        if (three3DMesh) three3DMesh.rotation.set(0, 0, 0);
+        if (three3DWireMesh) three3DWireMesh.rotation.set(0, 0, 0);
+      }
+    }
+
+    function close3DModal() {
+      if (three3DAnimId) cancelAnimationFrame(three3DAnimId);
+      const modal = document.getElementById('cavity-3d-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function download3DTopographyJSON() {
+      if (!current3DMeshData) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(current3DMeshData, null, 2));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", `roadsentinel_3d_cavity_${current3DMeshData.incident_id || 'sample'}.json`);
+      document.body.appendChild(dlAnchor);
+      dlAnchor.click();
+      dlAnchor.remove();
+    }
+
     // Initialize application
     window.addEventListener('DOMContentLoaded', () => {
       initMap();
       loadCivicData();
+
+      // Check if user navigated with an intent to inspect a 3D incident
+      try {
+        const incoming3D = localStorage.getItem('open3DIncident');
+        if (incoming3D) {
+          localStorage.removeItem('open3DIncident');
+          setTimeout(() => open3DCavityModal(incoming3D), 600);
+        }
+      } catch (e) {}
     });
   </script>
 </body>

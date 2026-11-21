@@ -26,6 +26,8 @@ from app.models.schemas import (
 from app.core.database import db
 from app.services.civic import civic_engine
 from app.services.sla import SLAEngine
+from app.services.volumetric_3d import volumetric_3d_service
+from app.models.schemas import CavityMesh3DResponse
 
 
 def print_step(name: str):
@@ -195,6 +197,51 @@ def test_rating_classification_thresholds():
     print("  [PASS] All ASTM D6433 classification boundary conditions verified.")
 
 
+def test_3d_cavity_topography_mesh():
+    print_step("Test 6: 3D Pavement Cavity Topography & Volumetric Mesh Reconstruction")
+    mesh = volumetric_3d_service.generate_cavity_mesh(
+        defect_type="pothole",
+        severity="HIGH",
+        surface_area_m2=0.55,
+        estimated_depth_m=0.085,
+        grid_size=40
+    )
+
+    print(f"  Grid Dimensions:        {mesh.grid_size} x {mesh.grid_size} vertices")
+    print(f"  Max Cavity Depth:       {mesh.max_depth_cm} cm")
+    print(f"  Mean Cavity Depth:      {mesh.mean_depth_cm} cm")
+    print(f"  Surface Footprint Area: {mesh.surface_area_m2} m²")
+    print(f"  Volumetric Displacement:{mesh.volume_m3} m³ ({mesh.volume_liters} L)")
+    print(f"  Compacted Asphalt Req:  {mesh.asphalt_required_kg} kg (@ {mesh.compaction_density_kg_m3} kg/m³)")
+    print(f"  Cavity Morphology:      {mesh.morphology}")
+    print(f"  Civil Repair Grade:     {mesh.repair_grade[:60]}...")
+
+    assert isinstance(mesh, CavityMesh3DResponse)
+    assert mesh.grid_size == 40
+    assert len(mesh.heightmap) == 40
+    assert len(mesh.heightmap[0]) == 40
+    assert mesh.max_depth_cm == 8.5
+    assert mesh.volume_m3 > 0.0
+    assert mesh.asphalt_required_kg > 0.0
+    assert len(mesh.transverse_profile) == 40
+    assert len(mesh.longitudinal_profile) == 40
+
+    # Center of cavity must be depressed (negative elevation)
+    center_val = mesh.heightmap[20][20]
+    assert center_val < -4.0, f"Expected center depression < -4.0cm, got {center_val}"
+
+    # Outer road datum perimeter should be flat (near 0)
+    outer_val = abs(mesh.heightmap[0][0])
+    assert outer_val < 0.5, f"Expected perimeter datum near 0cm, got {outer_val}"
+
+    # Also test incident-based 3D mesh retrieval
+    inc_mesh = volumetric_3d_service.generate_cavity_mesh(incident_id="INC-2026-8812")
+    assert inc_mesh.incident_id == "INC-2026-8812"
+    assert inc_mesh.road_name == "State Highway 17 North"
+
+    print("  [PASS] 3D Pavement Cavity Topography & Volumetric Mesh successfully verified.")
+
+
 if __name__ == "__main__":
     print("=======================================================================")
     print("  ROADSENTINEL AI: PHASE 6 CIVIC INTELLIGENCE TEST SUITE")
@@ -206,6 +253,7 @@ if __name__ == "__main__":
     test_public_audit_feed_and_cards()
     test_corridor_deduct_restoration_lifecycle()
     test_rating_classification_thresholds()
+    test_3d_cavity_topography_mesh()
 
     print("\n=======================================================================")
     print("  [SUCCESS] 100% OF PHASE 6 VERIFICATION TESTS PASSED")
